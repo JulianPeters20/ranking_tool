@@ -36,22 +36,31 @@ const LIST_FONT_ABS = resolveTitleFont(DEFAULT_TITLE_FONT_KEY).file;
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1920;
 const ACCENT_COLOR = '0xFF2D55';
+// Plaetze 1-3 immer in Gold/Silber/Bronze (Podium auf einen Blick erkennbar).
+const PODIUM_COLORS = { 1: '0xFFD700', 2: '0xC0C0C0', 3: '0xCD7F32' };
+// Titel und Liste sitzen bewusst nicht ganz oben: YouTube Shorts blendet am
+// oberen Rand Bedienelemente ein, am unteren Rand Kanalname/Beschreibung --
+// LIST_BOTTOM_MARGIN haelt die Liste aus diesem Bereich heraus.
 const LIST_X = 48;
-const LIST_TOP_Y = 210;
-const LIST_SPACING = 92;
-const LIST_FONTSIZE = 42;
-const LIST_FONTSIZE_ACTIVE = 60;
+const LIST_TOP_Y = 360;
+const LIST_BOTTOM_MARGIN = 360;
+const LIST_SPACING = 108;
+const LIST_FONTSIZE = 52;
+const LIST_FONTSIZE_ACTIVE = 72;
 const LIST_LABEL_MAX_CHARS = 22;
 
-const BANNER_Y = 50;
+const BANNER_Y = 170;
 const BANNER_MAX_WIDTH = 1000;
 const BANNER_MIN_FONTSIZE = 26;
 const BANNER_DEFAULT_COLOR = '0xFFFFFF';
 
-const EMOJI_REGEX = /\p{Extended_Pictographic}/gu;
+// Neben den eigentlichen Emoji-Zeichen auch die unsichtbaren Bausteine
+// (Hautton-Modifier, Zero-Width-Joiner, Variation Selector, Keycap) entfernen
+// -- sonst bleiben davon Kaestchen/Luecken im gerenderten Text uebrig.
+const EMOJI_REGEX = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u200D\uFE0F\u20E3]/gu;
 
-// Fuer die Rangliste wird Emoji-Text einfach entfernt (keine eigene
-// Emoji-Zeile mehr noetig, seit Titel nur noch dort erscheinen).
+// Emojis erscheinen nicht im Video (die gebuendelten Schriften haben keine
+// Emoji-Glyphen) -- in Rangliste und Gesamttitel werden sie daher entfernt.
 function stripEmoji(text) {
   return text.replace(EMOJI_REGEX, '').replace(/\s+/g, ' ').trim();
 }
@@ -90,6 +99,26 @@ function runFfmpeg(args) {
   });
 }
 
+// Manche Clips (z.B. reine Bild-/Slideshow-Posts) haben keine Tonspur. Ohne
+// Ton faehrt ffmpeg ein reines Video-mp4 raus -- das laesst sich im Pass 2
+// nicht per "-c copy" mit den uebrigen Clips (Video+Ton) zusammenhaengen.
+function probeHasAudio(inputPath) {
+  return new Promise((resolve) => {
+    const proc = spawn('ffprobe', [
+      '-v', 'error',
+      '-select_streams', 'a',
+      '-show_entries', 'stream=index',
+      '-of', 'csv=p=0',
+      inputPath
+    ], { windowsHide: true });
+    let stdout = '';
+    proc.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+    // Ohne ffprobe wie bisher davon ausgehen, dass Ton vorhanden ist.
+    proc.on('error', () => resolve(true));
+    proc.on('close', () => resolve(stdout.trim().length > 0));
+  });
+}
+
 function writeTextFile(dir, name, text) {
   const filePath = path.join(dir, name);
   fs.writeFileSync(filePath, text, 'utf-8');
@@ -106,16 +135,39 @@ function toRelativeFfmpegPath(absPath) {
   return toFfmpegPath(path.relative(PROJECT_ROOT, absPath));
 }
 
+// Der gerade laufende Clip wird (neben der groesseren Schrift) in seiner
+// Rangfarbe hervorgehoben: Gold/Silber/Bronze fuer Platz 1-3, ab Platz 4
+// Akzent-Rot. Nicht aktive Eintraege ab Platz 4 bleiben weiss.
+function listEntryColor(rank, isCurrent) {
+  if (PODIUM_COLORS[rank]) return PODIUM_COLORS[rank];
+  return isCurrent ? ACCENT_COLOR : 'white';
+}
+
+// Bis ca. 11 Clips gelten die festen Abstaende/Groessen; bei mehr Clips wird
+// die Liste proportional gestaucht, damit sie nicht unten aus dem Bild laeuft.
+function listLayout(count) {
+  const available = CANVAS_HEIGHT - LIST_TOP_Y - LIST_BOTTOM_MARGIN;
+  const spacing = Math.min(LIST_SPACING, Math.floor(available / Math.max(1, count)));
+  const scale = spacing / LIST_SPACING;
+  return {
+    spacing,
+    fontsize: Math.max(16, Math.round(LIST_FONTSIZE * scale)),
+    fontsizeActive: Math.max(20, Math.round(LIST_FONTSIZE_ACTIVE * scale))
+  };
+}
+
 // Baut die permanente Rangliste: aufsteigend nach Rang sortiert (Platz 1
 // oben), jeder Clip zeigt seinen Titel, sobald er in der Abspielreihenfolge
 // an der Reihe war/ist ("aufgedeckt") -- beim letzten Clip ist die Liste
 // dadurch vollstaendig gefuellt. Titel koennen beliebigen Text enthalten
 // (Kommas, Doppelpunkte, Anfuehrungszeichen ...), daher ueber Textdateien,
-// nicht inline text=.
+// nicht inline text=. expansion=none, weil drawtext sonst '%' im Text als
+// Beginn einer %{...}-Sequenz interpretiert ("Stray %" -> falscher Text).
 function buildListFilters(clip, allClips) {
   const currentIndex = allClips.findIndex((c) => c.id === clip.id);
   const sortedByRank = [...allClips].sort((a, b) => a.rank - b.rank);
   const fontFileRel = toRelativeFfmpegPath(LIST_FONT_ABS);
+  const layout = listLayout(allClips.length);
 
   return sortedByRank.map((listClip, displayIndex) => {
     const originalIndex = allClips.findIndex((c) => c.id === listClip.id);
@@ -131,11 +183,11 @@ function buildListFilters(clip, allClips) {
     const labelFile = writeTextFile(TMP_DIR, `${clip.id}_list${displayIndex}.txt`, label);
     const labelFileRel = toRelativeFfmpegPath(labelFile);
 
-    const fontsize = isCurrent ? LIST_FONTSIZE_ACTIVE : LIST_FONTSIZE;
-    const fontcolor = isCurrent ? ACCENT_COLOR : 'white';
-    const y = LIST_TOP_Y + displayIndex * LIST_SPACING;
+    const fontsize = isCurrent ? layout.fontsizeActive : layout.fontsize;
+    const fontcolor = listEntryColor(listClip.rank, isCurrent);
+    const y = LIST_TOP_Y + displayIndex * layout.spacing;
 
-    return `drawtext=textfile=${labelFileRel}:fontfile=${fontFileRel}:fontsize=${fontsize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${LIST_X}:y=${y}`;
+    return `drawtext=textfile=${labelFileRel}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontsize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${LIST_X}:y=${y}`;
   });
 }
 
@@ -152,7 +204,16 @@ function buildTitleFilters(settings) {
   const rawTitle = (settings.title || '').trim();
   if (!rawTitle) return [];
 
-  const words = rawTitle.split(/\s+/).filter(Boolean);
+  // Der Wortindex muss dem im Frontend entsprechen (Schluessel von
+  // titleWordColors) -- daher erst splitten, dann Emojis pro Wort entfernen
+  // und reine Emoji-"Woerter" auslassen, ohne die Indizes zu verschieben.
+  const words = rawTitle
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => ({ text: stripEmoji(word), index }))
+    .filter((w) => w.text);
+  if (words.length === 0) return [];
+
   const fontFile = resolveTitleFont(settings.titleFont).file;
   const fontFileRel = toRelativeFfmpegPath(fontFile);
   const wordColors = settings.titleWordColors || {};
@@ -161,7 +222,7 @@ function buildTitleFilters(settings) {
 
   const measureTotal = (size) => {
     const spaceW = measureWidth(fontFile, ' ', size);
-    const wordsW = words.reduce((sum, w) => sum + measureWidth(fontFile, w, size), 0);
+    const wordsW = words.reduce((sum, w) => sum + measureWidth(fontFile, w.text, size), 0);
     return wordsW + spaceW * (words.length - 1);
   };
 
@@ -187,18 +248,18 @@ function buildTitleFilters(settings) {
   ];
 
   let cursorX = startX;
-  words.forEach((word, index) => {
-    const wordFile = writeTextFile(TMP_DIR, `banner_word_${index}.txt`, word);
+  for (const word of words) {
+    const wordFile = writeTextFile(TMP_DIR, `banner_word_${word.index}.txt`, word.text);
     const wordFileRel = toRelativeFfmpegPath(wordFile);
-    const colorHex = wordColors[String(index)];
+    const colorHex = wordColors[String(word.index)];
     const fontcolor = colorHex ? toFfmpegColor(colorHex) : BANNER_DEFAULT_COLOR;
 
     filters.push(
-      `drawtext=textfile=${wordFileRel}:fontfile=${fontFileRel}:fontsize=${fontSize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${Math.round(cursorX)}:y=${BANNER_Y}`
+      `drawtext=textfile=${wordFileRel}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontSize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${Math.round(cursorX)}:y=${BANNER_Y}`
     );
 
-    cursorX += measureWidth(fontFile, word, fontSize) + spaceWidth;
-  });
+    cursorX += measureWidth(fontFile, word.text, fontSize) + spaceWidth;
+  }
 
   return filters;
 }
@@ -209,25 +270,41 @@ async function renderSingleClip(clip, allClips, titleFilters) {
   const inputPath = path.join(DATA_DIR, clip.filePath);
   const outputPath = path.join(TMP_DIR, `${clip.id}.mp4`);
 
+  // setsar/format: alle Zwischen-Clips muessen exakt dasselbe Format haben,
+  // sonst scheitert bzw. verfaelscht der verlustfreie Concat in Pass 2
+  // (z.B. bei Quellen mit nicht-quadratischen Pixeln oder 10-Bit/4:4:4).
   const filters = [
     `scale=${CANVAS_WIDTH}:${CANVAS_HEIGHT}:force_original_aspect_ratio=decrease`,
     `pad=${CANVAS_WIDTH}:${CANVAS_HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+    'setsar=1',
     ...titleFilters,
-    ...buildListFilters(clip, allClips)
+    ...buildListFilters(clip, allClips),
+    'format=yuv420p'
   ];
 
+  const trimStart = Number(clip.trimStart) > 0 ? Number(clip.trimStart) : 0;
+  const trimEnd = clip.trimEnd !== null && clip.trimEnd !== undefined ? Number(clip.trimEnd) : null;
   const trimArgs = [];
-  if (clip.trimStart) {
-    trimArgs.push('-ss', String(clip.trimStart));
+  if (trimStart > 0) {
+    trimArgs.push('-ss', String(trimStart));
   }
-  if (clip.trimEnd !== null && clip.trimEnd !== undefined) {
-    trimArgs.push('-to', String(clip.trimEnd));
+  // ffmpeg bricht mit "-to value smaller than -ss" ab -- ein ungueltiges Ende
+  // bedeutet daher "bis zum Clipende".
+  if (trimEnd !== null && Number.isFinite(trimEnd) && trimEnd > trimStart) {
+    trimArgs.push('-to', String(trimEnd));
+  }
+
+  const hasAudio = await probeHasAudio(inputPath);
+  const inputArgs = [...trimArgs, '-i', inputPath];
+  if (!hasAudio) {
+    inputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
   }
 
   await runFfmpeg([
     '-y',
-    ...trimArgs,
-    '-i', inputPath,
+    ...inputArgs,
+    '-map', '0:v:0',
+    '-map', hasAudio ? '0:a:0' : '1:a:0',
     '-vf', filters.join(','),
     '-r', '30',
     '-c:v', 'libx264',
@@ -236,6 +313,7 @@ async function renderSingleClip(clip, allClips, titleFilters) {
     '-c:a', 'aac',
     '-ar', '44100',
     '-ac', '2',
+    ...(hasAudio ? [] : ['-shortest']),
     outputPath
   ]);
 
@@ -259,10 +337,23 @@ async function concatClips(tmpFiles) {
     '-safe', '0',
     '-i', listPath,
     '-c', 'copy',
+    // moov-Atom an den Dateianfang -> Browser-Vorschau startet sofort.
+    '-movflags', '+faststart',
     outputPath
   ]);
 
   return outputFile;
+}
+
+// Zwischen-Clips/Textdateien werden nach jedem Render entfernt -- sonst
+// sammeln sich pro Render zig MB in data/output/tmp an (und sind ueber die
+// statische /output-Route erreichbar).
+function cleanupTmpDir() {
+  try {
+    fs.rmSync(TMP_DIR, { recursive: true, force: true });
+  } catch {
+    // Aufraeumen ist nicht kritisch -- beim naechsten Render erneut versucht.
+  }
 }
 
 function startRender(clipsWithRank, settings) {
@@ -270,6 +361,7 @@ function startRender(clipsWithRank, settings) {
 
   (async () => {
     try {
+      cleanupTmpDir();
       fs.mkdirSync(TMP_DIR, { recursive: true });
 
       // Der Gesamttitel ist auf jedem Clip identisch -- Filter einmalig
@@ -283,13 +375,19 @@ function startRender(clipsWithRank, settings) {
         tmpFiles.push(tmpFile);
       }
       const outputFile = await concatClips(tmpFiles);
+      // Fertiges Video in die Bibliothek fuer den YouTube-Planer aufnehmen,
+      // bevor der Status auf "done" springt -- so ist es beim Wechsel in den
+      // Planer garantiert schon gelistet. Spaeter require'd (nicht am
+      // Dateikopf), um einen Zirkelbezug zu vermeiden, falls videoLibrary.js
+      // je etwas aus renderer.js braucht.
+      await require('./videoLibrary').registerRenderedVideo(outputFile).catch((err) => {
+        console.error('Video konnte nicht in die Planer-Bibliothek aufgenommen werden:', err);
+      });
       renderState = { status: 'done', outputFile, error: null };
-      // Fertiges Video in die Bibliothek fuer den YouTube-Planer aufnehmen.
-      // Spaeter require'd (nicht am Dateikopf), um einen Zirkelbezug zu
-      // vermeiden, falls videoLibrary.js je etwas aus renderer.js braucht.
-      require('./videoLibrary').registerRenderedVideo(outputFile).catch(() => {});
     } catch (err) {
       renderState = { status: 'error', outputFile: null, error: String(err.message || err) };
+    } finally {
+      cleanupTmpDir();
     }
   })();
 }

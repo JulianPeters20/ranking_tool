@@ -14,9 +14,15 @@ const titleFontEl = document.getElementById('title-font');
 const titleSizeEl = document.getElementById('title-size');
 
 let clips = [];
+let lastClipsJson = '';
 let pollTimer = null;
-let dragSourceId = null;
 let titleWordColors = {};
+
+// Laufende Speicher-Requests (Titel, Rang, Trim, Einstellungen). Ein gerade
+// verlassenes Eingabefeld speichert erst beim Klick auf "Video rendern" (via
+// 'change') -- ohne Warten koennte der Render-Request den Server zuerst
+// erreichen und mit dem alten Wert rendern.
+const pendingSaves = new Set();
 
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
@@ -27,23 +33,70 @@ async function fetchJson(url, options) {
   return body;
 }
 
-async function loadClips() {
-  clips = await fetchJson('/api/clips');
+function sendJson(url, method, body) {
+  const promise = fetchJson(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  pendingSaves.add(promise);
+  promise.finally(() => pendingSaves.delete(promise)).catch(() => {});
+  return promise;
+}
+
+function setClips(data) {
+  clips = data;
+  lastClipsJson = JSON.stringify(data);
   renderList();
+}
+
+// Uebernimmt einen einzelnen vom Server zurueckgegebenen Clip, ohne die Liste
+// neu aufzubauen (sonst schliesst sich z.B. die offene Videovorschau).
+function applyClipUpdate(updated) {
+  const idx = clips.findIndex((c) => c.id === updated.id);
+  if (idx === -1) return;
+  clips[idx] = updated;
+  lastClipsJson = JSON.stringify(clips);
+}
+
+async function loadClips() {
+  setClips(await fetchJson('/api/clips'));
   scheduleFollowUpPollIfNeeded();
+}
+
+// Ein Neuaufbau der Liste zerstoert ein fokussiertes Eingabefeld (Tippen geht
+// verloren), eine offene Videovorschau und einen laufenden Drag. Der
+// Hintergrund-Poll rendert daher nur, wenn der Nutzer gerade nichts davon
+// tut -- verpasste Aenderungen holt der naechste Poll nach.
+function isUserBusyWithList() {
+  if (listEl.querySelector('.dragging')) return true;
+  if (listEl.querySelector('.preview-wrap:not([hidden])')) return true;
+  const active = document.activeElement;
+  return !!active && listEl.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+}
+
+async function pollClips() {
+  let data;
+  try {
+    data = await fetchJson('/api/clips');
+  } catch {
+    return; // Server kurz nicht erreichbar -> naechster Versuch
+  }
+  const json = JSON.stringify(data);
+  if (json !== lastClipsJson && !isUserBusyWithList()) {
+    setClips(data);
+  }
+  const upToDate = json === lastClipsJson;
+  if (upToDate && !data.some((c) => c.status === 'downloading')) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
 }
 
 function scheduleFollowUpPollIfNeeded() {
   const stillDownloading = clips.some((c) => c.status === 'downloading');
   if (stillDownloading && !pollTimer) {
-    pollTimer = setInterval(async () => {
-      clips = await fetchJson('/api/clips');
-      renderList();
-      if (!clips.some((c) => c.status === 'downloading')) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
-    }, 1500);
+    pollTimer = setInterval(pollClips, 1500);
   }
 }
 
@@ -95,7 +148,15 @@ function buildClipControls(clip) {
   secLabel2.className = 'trim-unit';
   secLabel2.textContent = 's';
 
-  const commit = () => updateTrim(clip.id, startInput.value, endInput.value, maxDuration);
+  // Kein Neuaufbau der Liste nach dem Speichern -- sonst wuerde sich die
+  // Vorschau nach "Start hier setzen" schliessen, bevor man das Ende setzt.
+  // Nur die (ggf. geclampten) gespeicherten Werte zurueck in die Felder.
+  const commit = async () => {
+    const updated = await updateTrim(clip.id, startInput.value, endInput.value, maxDuration);
+    if (!updated) return;
+    startInput.value = updated.trimStart;
+    endInput.value = updated.trimEnd ?? maxDuration ?? '';
+  };
   startInput.addEventListener('change', commit);
   endInput.addEventListener('change', commit);
 
@@ -167,12 +228,12 @@ function renderList() {
   for (const clip of clips) {
     const li = document.createElement('li');
     li.className = 'clip-card';
-    li.draggable = true;
     li.dataset.id = clip.id;
 
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
     handle.textContent = '⠿';
+    handle.title = 'Ziehen, um die Reihenfolge zu ändern';
     li.appendChild(handle);
 
     const rankWrap = document.createElement('div');
@@ -225,19 +286,27 @@ function renderList() {
     deleteBtn.addEventListener('click', () => deleteClip(clip.id));
     li.appendChild(deleteBtn);
 
-    attachDragHandlers(li);
+    attachDragHandlers(li, handle);
     listEl.appendChild(li);
   }
 }
 
-function attachDragHandlers(li) {
-  li.addEventListener('dragstart', () => {
-    dragSourceId = li.dataset.id;
+function attachDragHandlers(li, handle) {
+  // Nur der Griff startet einen Drag: Waere die ganze Karte draggable, liesse
+  // sich weder Text in den Eingabefeldern markieren noch die Zeitleiste der
+  // Videovorschau ziehen -- beides startet sonst einen Karten-Drag.
+  handle.addEventListener('mousedown', () => { li.draggable = true; });
+  handle.addEventListener('mouseup', () => { li.draggable = false; });
+
+  li.addEventListener('dragstart', (e) => {
+    // Firefox startet einen Drag nur, wenn dataTransfer Daten enthaelt.
+    e.dataTransfer.setData('text/plain', li.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
     li.classList.add('dragging');
   });
   li.addEventListener('dragend', () => {
     li.classList.remove('dragging');
-    dragSourceId = null;
+    li.draggable = false;
     persistOrder();
   });
   li.addEventListener('dragover', (e) => {
@@ -252,20 +321,12 @@ function attachDragHandlers(li) {
 
 async function persistOrder() {
   const orderedIds = Array.from(listEl.children).map((li) => li.dataset.id);
-  clips = await fetchJson('/api/clips/order', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderedIds })
-  });
-  renderList();
+  if (orderedIds.join() === clips.map((c) => c.id).join()) return; // nichts verschoben
+  setClips(await sendJson('/api/clips/order', 'PUT', { orderedIds }));
 }
 
 async function updateTitle(id, title) {
-  await fetchJson(`/api/clips/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title })
-  });
+  applyClipUpdate(await sendJson(`/api/clips/${id}`, 'PUT', { title }));
 }
 
 // Leeres Feld setzt die Platznummer zurueck auf die automatische,
@@ -274,11 +335,7 @@ async function updateRank(id, rawValue) {
   const trimmed = String(rawValue).trim();
   const rank = trimmed === '' ? null : Number(trimmed);
   if (rank !== null && !Number.isFinite(rank)) return;
-  await fetchJson(`/api/clips/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rank })
-  });
+  await sendJson(`/api/clips/${id}`, 'PUT', { rank });
   await loadClips();
 }
 
@@ -293,17 +350,18 @@ async function updateTrim(id, rawStart, rawEnd, maxDuration) {
   const trimmedEnd = String(rawEnd).trim();
   let end = trimmedEnd === '' ? null : Number(trimmedEnd);
   if (end !== null) {
-    if (!Number.isFinite(end)) return;
-    if (maxDuration !== undefined) end = Math.min(end, maxDuration);
-    if (end <= start) end = null;
+    if (!Number.isFinite(end)) return null;
+    // Ende am/hinter der bekannten Dauer = "bis zum Clipende". yt-dlp liefert
+    // die Dauer oft auf ganze Sekunden gerundet -- ein fest gespeichertes
+    // Ende von z.B. 12 wuerde bei einem 12,4-s-Clip sonst unbemerkt das
+    // letzte Stueck abschneiden.
+    if (maxDuration !== undefined && end >= maxDuration) end = null;
+    else if (end <= start) end = null;
   }
 
-  await fetchJson(`/api/clips/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ trimStart: start, trimEnd: end })
-  });
-  await loadClips();
+  const updated = await sendJson(`/api/clips/${id}`, 'PUT', { trimStart: start, trimEnd: end });
+  applyClipUpdate(updated);
+  return updated;
 }
 
 async function deleteClip(id) {
@@ -321,23 +379,25 @@ addBtn.addEventListener('click', async () => {
   if (urls.length === 0) return;
 
   addBtn.disabled = true;
-  try {
-    for (const url of urls) {
-      const clip = await fetchJson('/api/clips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
-      });
+  // Jeder Link einzeln: ein ungueltiger Link bricht die uebrigen nicht ab.
+  // Fehlgeschlagene Links bleiben im Textfeld stehen, erfolgreiche nicht --
+  // sonst wuerden sie beim erneuten Klick doppelt hinzugefuegt.
+  const failed = [];
+  const errors = [];
+  for (const url of urls) {
+    try {
+      const clip = await sendJson('/api/clips', 'POST', { url });
       clips.push(clip);
+    } catch (err) {
+      failed.push(url);
+      errors.push(err.message);
     }
-    linksEl.value = '';
-    renderList();
-    scheduleFollowUpPollIfNeeded();
-  } catch (err) {
-    addErrorEl.textContent = err.message;
-  } finally {
-    addBtn.disabled = false;
   }
+  linksEl.value = failed.join('\n');
+  addErrorEl.textContent = errors.join(' · ');
+  renderList();
+  scheduleFollowUpPollIfNeeded();
+  addBtn.disabled = false;
 });
 
 renderBtn.addEventListener('click', async () => {
@@ -345,6 +405,7 @@ renderBtn.addEventListener('click', async () => {
   renderResultEl.hidden = true;
   renderBtn.disabled = true;
   try {
+    await Promise.allSettled([...pendingSaves]);
     await fetchJson('/api/render', { method: 'POST' });
     pollRenderStatus();
   } catch (err) {
@@ -353,10 +414,16 @@ renderBtn.addEventListener('click', async () => {
   }
 });
 
-async function pollRenderStatus() {
+function pollRenderStatus() {
   renderStatusEl.textContent = 'Video wird gerendert …';
+  renderBtn.disabled = true;
   const timer = setInterval(async () => {
-    const status = await fetchJson('/api/render/status');
+    let status;
+    try {
+      status = await fetchJson('/api/render/status');
+    } catch {
+      return; // Server kurz nicht erreichbar -> naechster Versuch
+    }
     if (status.status === 'running') return;
 
     clearInterval(timer);
@@ -370,6 +437,8 @@ async function pollRenderStatus() {
       renderResultEl.hidden = false;
     } else if (status.status === 'error') {
       renderStatusEl.textContent = `Fehler beim Rendern: ${status.error}`;
+    } else {
+      renderStatusEl.textContent = 'Render-Vorgang wurde abgebrochen (Server neu gestartet?). Bitte erneut rendern.';
     }
   }, 1500);
 }
@@ -402,7 +471,15 @@ function renderTitleWordEditor() {
     colorInput.className = 'title-word-color-input';
     colorInput.tabIndex = -1;
     colorInput.value = color || '#ff0000';
-    colorInput.addEventListener('input', () => setWordColor(index, colorInput.value));
+    // 'input' feuert bei jeder Mausbewegung im Farbwaehler: nur Live-Vorschau
+    // am Chip (ein Neuaufbau wuerde das Element unter dem offenen Waehler
+    // entfernen, ein Request pro Bewegung waere unnoetig). Gespeichert wird
+    // beim Schliessen des Waehlers ('change').
+    colorInput.addEventListener('input', () => {
+      chip.style.color = colorInput.value;
+      chip.style.borderColor = colorInput.value;
+    });
+    colorInput.addEventListener('change', () => setWordColor(index, colorInput.value));
 
     chip.addEventListener('click', () => colorInput.click());
 
@@ -430,32 +507,20 @@ async function setWordColor(index, color) {
     delete titleWordColors[String(index)];
   }
   renderTitleWordEditor();
-  await fetchJson('/api/settings', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ titleWordColors })
-  });
+  await sendJson('/api/settings', 'PUT', { titleWordColors });
 }
 
 // 'input' (bei jedem Tastenanschlag) aktualisiert nur die Chip-Anzeige;
 // 'change' (bei Blur) speichert den Titeltext selbst auf dem Server.
 overallTitleEl.addEventListener('input', renderTitleWordEditor);
-overallTitleEl.addEventListener('change', async () => {
-  await fetchJson('/api/settings', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: overallTitleEl.value })
-  });
+overallTitleEl.addEventListener('change', () => {
+  sendJson('/api/settings', 'PUT', { title: overallTitleEl.value });
 });
 
-async function updateTitleStyle() {
-  await fetchJson('/api/settings', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      titleFont: titleFontEl.value,
-      titleFontSize: Number(titleSizeEl.value) || 62
-    })
+function updateTitleStyle() {
+  sendJson('/api/settings', 'PUT', {
+    titleFont: titleFontEl.value,
+    titleFontSize: Number(titleSizeEl.value) || 62
   });
 }
 titleFontEl.addEventListener('change', updateTitleStyle);
@@ -481,10 +546,18 @@ async function loadSettings() {
   renderTitleWordEditor();
 }
 
+// Laeuft (z.B. nach einem Neuladen der Seite) noch ein Render-Vorgang,
+// dessen Fortschritt weiter anzeigen statt den Button freizugeben.
+async function resumeRenderStatus() {
+  const status = await fetchJson('/api/render/status');
+  if (status.status === 'running') pollRenderStatus();
+}
+
 async function init() {
   await loadFonts();
   await loadSettings();
   await loadClips();
+  await resumeRenderStatus();
 }
 
 init();

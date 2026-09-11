@@ -13,11 +13,23 @@ function updateVideo(id, patch) {
   return videos[idx];
 }
 
+const PAST_SCHEDULE_ERROR = 'Geplanter Zeitpunkt liegt inzwischen in der Vergangenheit (App war bis dahin aus?) – bitte im Kalender neu einplanen.';
+
 async function attemptUpload(id) {
   const videos = loadVideos();
   const entry = videos.find((v) => v.id === id);
   if (!entry || !entry.scheduledAt) return;
   if (entry.uploadStatus === 'scheduled_on_youtube' || entry.uploadStatus === 'uploading') return;
+
+  // YouTube lehnt ein publishAt in der Vergangenheit ab -- ein Versuch wuerde
+  // nur die komplette Datei hochladen, scheitern und sich alle 5 Minuten
+  // wiederholen. Stattdessen einmalig als Fehler markieren.
+  if (new Date(entry.scheduledAt).getTime() <= Date.now()) {
+    if (entry.error !== PAST_SCHEDULE_ERROR) {
+      updateVideo(id, { uploadStatus: 'error', error: PAST_SCHEDULE_ERROR });
+    }
+    return;
+  }
 
   updateVideo(id, { uploadStatus: 'uploading', error: null });
   try {

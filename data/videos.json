@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "808e6b94-579b-4e72-b3ac-3e6137c20b38",
+    "filePath": "output/final_1789109850561.mp4",
+    "thumbnailPath": "output/thumbnails/808e6b94-579b-4e72-b3ac-3e6137c20b38.jpg",
+    "createdAt": "2026-09-11T06:57:30.784Z",
+    "youtubeTitle": "test",
+    "youtubeDescription": "",
+    "tags": [],
+    "madeForKids": false,
+    "scheduledAt": null,
+    "uploadStatus": "draft",
+    "youtubeVideoId": null,
+    "error": null
+  }
+]

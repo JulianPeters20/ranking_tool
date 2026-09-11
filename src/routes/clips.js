@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { loadClips, saveClips, loadSettings, saveSettings } = require('../services/state');
-const { fetchMetadata, downloadClip, removeClipFiles } = require('../services/downloader');
+const { fetchMetadata, downloadClip, removeClipFiles, removeDownloadedFiles } = require('../services/downloader');
 const { startRender, getRenderStatus } = require('../services/renderer');
 const { listTitleFonts, TITLE_FONTS } = require('../services/fonts');
 
@@ -11,13 +11,24 @@ const router = express.Router();
 // hoechste Zahl, letzter Eintrag = #1 (klassisches Countdown-Format).
 // Ist rankOverride gesetzt (manuell im Frontend editiert), gewinnt dieser
 // Wert -- Rang-Anzeige und Drag&Drop-Reihenfolge sind damit entkoppelt.
+// Automatische Nummern ueberspringen dabei bereits manuell vergebene Plaetze:
+// Bei 5 Clips mit "4" als manuellem Rang des ersten Clips bekommen die
+// uebrigen 5, 3, 2, 1 -- statt dass ein zweiter Clip ebenfalls "4" zeigt.
 function withRanks(clips) {
-  const total = clips.length;
-  return clips.map((clip, index) => ({
+  const hasOverride = (clip) => clip.rankOverride !== null && clip.rankOverride !== undefined;
+  const taken = new Set(clips.filter(hasOverride).map((c) => c.rankOverride));
+  const autoCount = clips.filter((c) => !hasOverride(c)).length;
+
+  const freeRanks = [];
+  for (let rank = 1; freeRanks.length < autoCount; rank++) {
+    if (!taken.has(rank)) freeRanks.push(rank);
+  }
+  freeRanks.reverse(); // Countdown: oberster automatischer Clip = hoechste freie Zahl
+
+  let nextFree = 0;
+  return clips.map((clip) => ({
     ...clip,
-    rank: clip.rankOverride !== null && clip.rankOverride !== undefined
-      ? clip.rankOverride
-      : total - index
+    rank: hasOverride(clip) ? clip.rankOverride : freeRanks[nextFree++]
   }));
 }
 
@@ -25,10 +36,22 @@ router.get('/clips', (req, res) => {
   res.json(withRanks(loadClips()));
 });
 
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 router.post('/clips', (req, res) => {
-  const { url } = req.body || {};
-  if (!url || typeof url !== 'string') {
+  const url = typeof (req.body || {}).url === 'string' ? req.body.url.trim() : '';
+  if (!url) {
     return res.status(400).json({ error: 'Feld "url" fehlt.' });
+  }
+  if (!isHttpUrl(url)) {
+    return res.status(400).json({ error: `Ungültiger Link (nur http/https): ${url}` });
   }
 
   const clips = loadClips();
@@ -59,7 +82,12 @@ router.post('/clips', (req, res) => {
       const files = await downloadClip(id, url);
       const current = loadClips();
       const idx = current.findIndex((c) => c.id === id);
-      if (idx === -1) return; // wurde zwischenzeitlich geloescht
+      if (idx === -1) {
+        // Wurde waehrend des Downloads geloescht -- die gerade erst
+        // heruntergeladenen Dateien sonst als Waisen liegen lassen.
+        removeDownloadedFiles(id);
+        return;
+      }
       current[idx] = {
         ...current[idx],
         title: meta.title,
@@ -70,6 +98,7 @@ router.post('/clips', (req, res) => {
       };
       saveClips(current);
     } catch (err) {
+      removeDownloadedFiles(id);
       const current = loadClips();
       const idx = current.findIndex((c) => c.id === id);
       if (idx === -1) return;
@@ -117,6 +146,11 @@ router.put('/clips/:id', (req, res) => {
     updated.trimEnd = null;
   } else if (typeof trimEnd === 'number' && Number.isFinite(trimEnd)) {
     updated.trimEnd = trimEnd;
+  }
+  // Ende <= Start wuerde ffmpeg beim Rendern abbrechen lassen ("-to value
+  // smaller than -ss") -> wie im Frontend als "bis zum Clipende" behandeln.
+  if (updated.trimEnd !== null && updated.trimEnd !== undefined && updated.trimEnd <= updated.trimStart) {
+    updated.trimEnd = null;
   }
   clips[idx] = updated;
   saveClips(clips);

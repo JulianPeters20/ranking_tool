@@ -1,6 +1,9 @@
 {
-  "title": "",
+  "title": "Ranking best Parkour Fails",
   "titleFont": "arial",
   "titleFontSize": 62,
-  "titleWordColors": {}
+  "titleWordColors": {
+    "2": "#fc0303",
+    "3": "#fff700"
+  }
 }

@@ -30,8 +30,10 @@ function runYtDlp(args) {
   });
 }
 
+// Die URL steht immer hinter "--": ein Wert wie "--exec=..." wuerde von
+// yt-dlp sonst als Option (inkl. Befehlsausfuehrung) interpretiert.
 async function fetchMetadata(url) {
-  const raw = await runYtDlp([url, '--dump-json', '--no-warnings', '--no-playlist']);
+  const raw = await runYtDlp(['--dump-json', '--no-warnings', '--no-playlist', '--', url]);
   const info = JSON.parse(raw);
   return {
     title: (info.title || info.description || '').replace(/\s+/g, ' ').trim().slice(0, 80),
@@ -44,14 +46,15 @@ async function downloadClip(id, url) {
   const outputTemplate = path.join(CLIPS_DIR, `${id}.%(ext)s`);
 
   await runYtDlp([
-    url,
     '-f', 'bv*+ba/b',
     '--merge-output-format', 'mp4',
     '--write-thumbnail',
     '--convert-thumbnails', 'jpg',
     '--no-playlist',
     '--no-warnings',
-    '-o', outputTemplate
+    '-o', outputTemplate,
+    '--',
+    url
   ]);
 
   const videoPath = path.join(CLIPS_DIR, `${id}.mp4`);
@@ -79,4 +82,16 @@ function removeClipFiles(clip) {
   }
 }
 
-module.exports = { fetchMetadata, downloadClip, removeClipFiles };
+// Entfernt alles, was yt-dlp fuer diese Clip-ID angelegt hat (auch
+// .part-/Zwischendateien) -- fuer abgebrochene Downloads und Clips, die
+// waehrend des Downloads geloescht wurden.
+function removeDownloadedFiles(id) {
+  if (!fs.existsSync(CLIPS_DIR)) return;
+  for (const name of fs.readdirSync(CLIPS_DIR)) {
+    if (name.startsWith(`${id}.`)) {
+      fs.rmSync(path.join(CLIPS_DIR, name), { force: true });
+    }
+  }
+}
+
+module.exports = { fetchMetadata, downloadClip, removeClipFiles, removeDownloadedFiles };

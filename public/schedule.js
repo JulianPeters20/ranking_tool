@@ -64,7 +64,9 @@ async function loadYoutubeStatus() {
   if (status.connected) {
     els.notConnected.hidden = true;
     els.connected.hidden = false;
-    els.channelName.textContent = status.channelTitle || '(Name nicht abrufbar)';
+    // Der Upload-Scope erlaubt keinen Lesezugriff auf Kanaldaten -- ein
+    // fehlender Name ist daher normal und kein Verbindungsproblem.
+    els.channelName.textContent = status.channelTitle || '(Kanalname nicht abrufbar – Upload-Berechtigung ist aktiv)';
   } else {
     els.notConnected.hidden = false;
     els.connected.hidden = true;
@@ -136,7 +138,12 @@ async function loadVideos() {
 // Bibliothek/des Kalenders tippt (Aenderung wird beim naechsten Poll
 // nachgeholt, sobald das Feld den Fokus verliert).
 async function pollVideos() {
-  const data = await fetchJson('/api/videos');
+  let data;
+  try {
+    data = await fetchJson('/api/videos');
+  } catch {
+    return; // Server kurz nicht erreichbar -> naechster Poll
+  }
   videos = data;
 
   const json = JSON.stringify(data);
@@ -287,7 +294,12 @@ async function updateVideoField(id, patch) {
 }
 
 async function deleteVideo(id) {
-  await fetchJson(`/api/videos/${id}`, { method: 'DELETE' });
+  if (!confirm('Video wirklich löschen? Die gerenderte Videodatei wird dabei endgültig entfernt.')) return;
+  try {
+    await fetchJson(`/api/videos/${id}`, { method: 'DELETE' });
+  } catch (err) {
+    alert(`Konnte nicht gelöscht werden: ${err.message}`);
+  }
   await loadVideos();
 }
 
@@ -305,7 +317,11 @@ async function scheduleVideo(id, isoDatetime) {
 }
 
 async function unscheduleVideo(id) {
-  await fetchJson(`/api/videos/${id}/unschedule`, { method: 'PUT' });
+  try {
+    await fetchJson(`/api/videos/${id}/unschedule`, { method: 'PUT' });
+  } catch (err) {
+    alert(`Konnte nicht zurückgenommen werden: ${err.message}`);
+  }
   await loadVideos();
 }
 
@@ -384,10 +400,15 @@ function renderCalendar() {
     if (!video.scheduledAt) continue;
     const scheduled = new Date(video.scheduledAt);
     if (scheduled < weekStart || scheduled >= weekEnd) continue;
-    if (scheduled.getHours() < HOURS[0] || scheduled.getHours() > HOURS[HOURS.length - 1]) continue;
 
-    const dayIndex = Math.floor((new Date(scheduled).setHours(0, 0, 0, 0) - weekStart.getTime()) / 86400000);
-    const cell = els.calGrid.querySelector(`.cal-cell[data-day-index="${dayIndex}"][data-hour="${scheduled.getHours()}"]`);
+    // Zeiten vor 06:00 (per Klick auf die Uhrzeit einstellbar) haben keine
+    // eigene Zeile -- in der ersten Zeile anzeigen statt das Video unsichtbar
+    // zu machen (es stuende sonst weder im Kalender noch in der Bibliothek).
+    // Die Karte zeigt weiterhin die echte Uhrzeit.
+    const rowHour = Math.max(scheduled.getHours(), HOURS[0]);
+    // round statt floor: an Tagen mit Zeitumstellung ist ein Tag 23/25 h lang.
+    const dayIndex = Math.round((new Date(scheduled).setHours(0, 0, 0, 0) - weekStart.getTime()) / 86400000);
+    const cell = els.calGrid.querySelector(`.cal-cell[data-day-index="${dayIndex}"][data-hour="${rowHour}"]`);
     if (cell) cell.appendChild(buildVideoCard(video, { compact: true }));
   }
 }

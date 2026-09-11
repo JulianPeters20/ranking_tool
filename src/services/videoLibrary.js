@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
-const { DATA_DIR } = require('./state');
+const { DATA_DIR, writeJsonAtomic } = require('./state');
 
 const VIDEOS_FILE = path.join(DATA_DIR, 'videos.json');
 const OUTPUT_DIR = path.join(DATA_DIR, 'output');
@@ -28,13 +28,16 @@ function loadVideos() {
 }
 
 function saveVideos(videos) {
-  ensureFile();
-  fs.writeFileSync(VIDEOS_FILE, JSON.stringify(videos, null, 2), 'utf-8');
+  writeJsonAtomic(VIDEOS_FILE, videos);
 }
 
 function extractThumbnail(videoAbsPath, outAbsPath) {
   return new Promise((resolve) => {
-    const proc = spawn('ffmpeg', ['-y', '-ss', '1', '-i', videoAbsPath, '-frames:v', '1', '-update', '1', outAbsPath]);
+    const proc = spawn(
+      'ffmpeg',
+      ['-y', '-ss', '1', '-i', videoAbsPath, '-frames:v', '1', '-update', '1', outAbsPath],
+      { windowsHide: true }
+    );
     // Thumbnail-Fehler sind nicht kritisch fuers Feature -- einfach ohne
     // Thumbnail weitermachen statt die Registrierung fehlschlagen zu lassen.
     proc.on('close', () => resolve());

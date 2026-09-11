@@ -8,6 +8,10 @@ const { resetStaleUploads, retryPendingUploads } = require('./src/services/uploa
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Standardmaessig nur lokal erreichbar: die API hat keine Anmeldung, und
+// jeder im selben Netzwerk koennte sonst Clips/Videos loeschen oder
+// YouTube-Uploads anstossen. Fuer LAN-Zugriff bewusst HOST=0.0.0.0 setzen.
+const HOST = process.env.HOST || '127.0.0.1';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -23,7 +27,7 @@ app.use(youtubeRouter); // definiert eigene Pfade inkl. /auth/youtube/callback
 
 const RETRY_INTERVAL_MS = 5 * 60 * 1000;
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(`Ranking-Clips-Tool laeuft auf http://localhost:${PORT}`);
 
   // Von einem vorherigen Lauf haengengebliebene Uploads (App war zu,

@@ -25,6 +25,13 @@ npm start
 
 Dann im Browser öffnen: http://localhost:3000
 
+Der Server ist standardmäßig nur vom eigenen Rechner aus erreichbar
+(`127.0.0.1`), da die API keine Anmeldung hat. Für Zugriff aus dem lokalen
+Netzwerk bewusst `HOST=0.0.0.0` setzen.
+
+Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
+ändert regelmäßig seine Seite): Server beenden, dann `npm run update-ytdlp`.
+
 ## Nutzung
 
 1. TikTok-Links (einer pro Zeile) einfügen, "Clips hinzufügen" klicken.
@@ -35,19 +42,23 @@ Dann im Browser öffnen: http://localhost:3000
    Wort anklicken öffnet einen Farbwähler** (z.B. Rot oder Gelb für einzelne
    Wörter), nochmal anklicken erlaubt eine andere Farbe, der kleine "×" setzt
    es zurück auf Weiß. Schriftart und -größe gelten einheitlich für den
-   gesamten Titel (eigene Dropdown-/Zahlen-Felder daneben).
-4. Reihenfolge per Drag & Drop festlegen — sie bestimmt die
+   gesamten Titel (eigene Dropdown-/Zahlen-Felder daneben). Emojis im
+   Gesamttitel werden im Video weggelassen.
+4. Reihenfolge per Drag & Drop am Griff **⠿** festlegen — sie bestimmt die
    Abspielreihenfolge im Video. Standardmäßig bekommt der **oberste** Clip
    die höchste Platznummer, der **unterste** Clip ist **#1** (klassisches
    Countdown-Format). Die Platznummer lässt sich direkt daneben frei
-   überschreiben (z.B. für Lücken wie #10, #7, #3) — leeres Feld setzt sie
-   zurück auf die automatische, positionsbasierte Nummer.
+   überschreiben (z.B. für Lücken wie #10, #7, #3, oder um Platz 4 zuerst
+   abzuspielen) — leeres Feld setzt sie zurück auf die automatische,
+   positionsbasierte Nummer. Automatische Nummern überspringen dabei
+   manuell vergebene Plätze, sodass keine Nummer doppelt vorkommt.
    Alle Platznummern sind während des ganzen Videos permanent links im Bild
    sichtbar, **aufsteigend sortiert** (#1 oben, höchster Platz unten). Der
    Titel eines Clips erscheint in dieser Liste, sobald der Clip in der
    Wiedergabe an der Reihe war/ist — beim letzten Clip ist die Liste dadurch
-   vollständig gefüllt. Der gerade aktive Eintrag ist zusätzlich hervorgehoben
-   (größer, Akzentfarbe).
+   vollständig gefüllt. Die Plätze **1, 2, 3** erscheinen immer in **Gold,
+   Silber, Bronze**. Der gerade laufende Clip ist zusätzlich hervorgehoben:
+   größer und in seiner Rangfarbe (Gold/Silber/Bronze, ab Platz 4 Rot).
 5. Pro Clip **Start/Ende in Sekunden** eintragen, um nur einen Ausschnitt ins
    Endvideo zu übernehmen (Default: ganzer Clip). Ende leer lassen = bis zum
    Clipende. Über den Button **"Vorschau"** lässt sich der Clip direkt im
@@ -60,18 +71,28 @@ Dann im Browser öffnen: http://localhost:3000
 7. "Video rendern" klicken. Das fertige Video liegt danach unter
    `data/output/final_<timestamp>.mp4` und kann im Browser direkt angeschaut
    oder heruntergeladen werden. Es erscheint außerdem automatisch im
-   **YouTube Planer** (Link oben auf der Seite), bereit zum Einplanen.
+   **YouTube Planer** (Umschalter oben auf der Seite bzw. Button direkt unter
+   dem fertigen Video), bereit zum Einplanen.
 
 ## YouTube Planer — automatischer geplanter Upload
 
 Über "YouTube Planer" (`/schedule.html`) lässt sich jedes fertig gerenderte
 Video mit Titel/Beschreibung/Tags versehen und per Drag & Drop auf einen
-Kalender-Zeitpunkt ziehen. Das Tool lädt es daraufhin zeitnah als **privates**
+Kalender-Zeitpunkt ziehen. Das Tool lädt es daraufhin **sofort** als **privates**
 Video zu YouTube hoch und setzt YouTubes eigenes "Veröffentlichen am"-Feld auf
 den gewählten Zeitpunkt — YouTube macht es dann selbstständig pünktlich
 öffentlich. Der Rechner muss zur eigentlichen Veröffentlichungszeit nicht
 laufen; ein unterbrochener Upload (App war zu, kein Internet) wird beim
-nächsten Start und danach alle 5 Minuten automatisch erneut versucht.
+nächsten Start und danach alle 5 Minuten automatisch erneut versucht —
+solange der geplante Zeitpunkt noch in der Zukunft liegt. Ist er inzwischen
+verstrichen, wird das Video als Fehler markiert und muss neu eingeplant
+werden (YouTube akzeptiert keinen Veröffentlichungszeitpunkt in der
+Vergangenheit). Titel (max. 100 Zeichen, keine `< >`) und Beschreibung werden
+schon beim Einplanen geprüft.
+
+Den Kanalnamen zeigt der Planer nicht an: Das Tool fordert bewusst nur die
+Upload-Berechtigung (`youtube.upload`) an, und die erlaubt keinen
+Lesezugriff auf Kanaldaten.
 
 ### Einmalige Einrichtung bei Google (bevor der Planer nutzbar ist)
 
@@ -175,12 +196,22 @@ Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
   Abspielreihenfolge, nie eine bereits manuell gesetzte Nummer.
 - Trimming (`trimStart`/`trimEnd`, Sekunden) wird als `-ss`/`-to` **vor** dem
   `-i` an ffmpeg übergeben (Input-Seeking). Das ist deutlich schneller als
-  Output-seitiges Trimmen, bei kurzen TikTok-Clips aber minimal ungenau
-  (Abweichung im Bereich von Zehntelsekunden möglich).
+  Output-seitiges Trimmen und, da ohnehin neu kodiert wird, trotzdem
+  bildgenau. Ein Ende ≤ Start wird als "bis zum Clipende" behandelt (ffmpeg
+  würde sonst abbrechen).
+- Alle Zwischen-Clips werden auf exakt dasselbe Format gebracht (1080×1920,
+  SAR 1:1, yuv420p, 30 fps, AAC-Stereo 44,1 kHz) — Clips **ohne Tonspur**
+  bekommen eine stille Spur, sonst scheitert der verlustfreie Concat.
+  Zwischendateien in `data/output/tmp` werden nach jedem Render gelöscht.
+- Alle `drawtext`-Filter nutzen `expansion=none`, damit Zeichen wie `%` im
+  Titel als normaler Text erscheinen.
 - Die permanente Rangliste ist **aufsteigend nach Platznummer sortiert**
-  (unabhängig von der Abspielreihenfolge), wächst linear nach unten
-  (`y = 210 + Index * 92px`) und ist für ca. 5-15 Clips ausgelegt — bei sehr
-  vielen Clips kann die Liste den unteren Bildbereich erreichen. Ob ein Clip
+  (unabhängig von der Abspielreihenfolge) und wächst linear nach unten
+  (`y = 360 + Index * 108px`, Schrift 52px, aktiver Eintrag 72px; der
+  Gesamttitel steht bei `y = 170`). Oben und unten bleibt bewusst Platz, weil
+  YouTube Shorts dort Bedienelemente bzw. Kanalname/Beschreibung einblendet.
+  Ab ca. 12 Clips werden Abstände und Schriftgröße automatisch gestaucht,
+  damit die Liste in diesem Bereich bleibt. Ob ein Clip
   "aufgedeckt" ist (Titel sichtbar), wird über seinen Index in der
   Abspiel-Reihenfolge bestimmt (`Index <= aktueller Index`), nicht über seine
   Platznummer — Titel-Text pro Listeneintrag wird auf 22 Zeichen gekürzt,
@@ -191,7 +222,13 @@ Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
   (Wortindex → Hexfarbe). 6 Schriftarten stehen lokal in `assets/fonts/`
   bereit (Arial Bold, Impact, Comic Sans Bold, Arial Black, Bahnschrift,
   Georgia Bold) — weitere lassen sich in `src/services/fonts.js` ergänzen
-  (Datei muss im Projektordner liegen, siehe Escaping-Hinweis oben).
+  (Datei muss im Projektordner liegen, siehe Escaping-Hinweis oben). Kann
+  `opentype.js` eine Schrift nicht vollständig verarbeiten (z.B.
+  Bahnschrift), misst das Tool die Breiten ersatzweise direkt über die
+  Glyph-Breiten und Kerning-Paare.
+- Die gebündelten Schriften sind Microsoft-Schriften (Arial, Impact, …) —
+  für die lokale Nutzung unproblematisch, in einem **öffentlichen**
+  Repository aber lizenzrechtlich heikel.
 - Die Videovorschau lädt die Originaldatei erst bei Klick auf "Vorschau"
   (`preload="none"`), um nicht alle Clips gleichzeitig zu laden.
 - **YouTube-Zugangsdaten/Tokens** liegen unverschlüsselt in

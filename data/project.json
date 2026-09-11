@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "id": "62c74073-2624-48ab-84d7-6490caa6e89f",
+    "url": "https://www.tiktok.com/@videos_graciosos_funfun/video/7588926827738008854?is_from_webapp=1&sender_device=pc",
+    "title": "parkour fail 😂",
+    "rankOverride": null,
+    "trimStart": 0,
+    "trimEnd": null,
+    "filePath": "clips/62c74073-2624-48ab-84d7-6490caa6e89f.mp4",
+    "thumbnailPath": "clips/62c74073-2624-48ab-84d7-6490caa6e89f.jpg",
+    "duration": 3,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "2c03cb06-7fca-4428-bd48-a9f86b51dac7",
+    "url": "https://www.tiktok.com/@oddballs/video/6890991075159215366?is_from_webapp=1&sender_device=pc&web_id=7683898132782597654",
+    "title": "so close yet so far",
+    "rankOverride": 3,
+    "trimStart": 0,
+    "trimEnd": null,
+    "filePath": "clips/2c03cb06-7fca-4428-bd48-a9f86b51dac7.mp4",
+    "thumbnailPath": "clips/2c03cb06-7fca-4428-bd48-a9f86b51dac7.jpg",
+    "duration": 12,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "47d5115c-df26-4af6-805d-b6ace69a4309",
+    "url": "https://www.tiktok.com/@houseofhighlights/video/7670642112089689357?is_from_webapp=1&sender_device=pc&web_id=7683898132782597654",
+    "title": "bro kept trying 😭😂",
+    "rankOverride": null,
+    "trimStart": 0,
+    "trimEnd": null,
+    "filePath": "clips/47d5115c-df26-4af6-805d-b6ace69a4309.mp4",
+    "thumbnailPath": "clips/47d5115c-df26-4af6-805d-b6ace69a4309.jpg",
+    "duration": 13,
+    "status": "ready",
+    "error": null
+  }
+]

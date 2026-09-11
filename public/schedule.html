@@ -11,7 +11,10 @@
   <header>
     <h1>YouTube Planer</h1>
     <p class="subtitle">Fertige Ranking-Videos mit Titel/Beschreibung versehen und per Drag &amp; Drop einplanen.</p>
-    <p class="subtitle"><a href="/index.html">&larr; zurück zum Ranking-Tool</a></p>
+    <nav class="app-nav" aria-label="Bereiche">
+      <a href="/index.html" class="app-nav-link">Ranking erstellen</a>
+      <a href="/schedule.html" class="app-nav-link is-active" aria-current="page">YouTube Planer</a>
+    </nav>
   </header>
 
   <main>
@@ -21,7 +24,7 @@
         <p class="hint">Client-ID und Client-Secret aus deinem Google-Cloud-Projekt eintragen (siehe README für die Einrichtung), danach verbinden.</p>
         <div class="field-row">
           <input type="text" id="yt-client-id" placeholder="Client-ID" />
-          <input type="text" id="yt-client-secret" placeholder="Client-Secret" />
+          <input type="password" id="yt-client-secret" placeholder="Client-Secret" autocomplete="off" />
           <button id="yt-save-credentials-btn">Speichern</button>
         </div>
         <a id="yt-connect-link" href="/auth/youtube/start"><button id="yt-connect-btn" type="button">Mit YouTube verbinden</button></a>

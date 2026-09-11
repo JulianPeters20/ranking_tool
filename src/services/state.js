@@ -26,6 +26,25 @@ function ensureFile(file, defaultContent) {
   }
 }
 
+// Erst in eine Temp-Datei schreiben, dann umbenennen: Ein Absturz mitten im
+// Schreiben hinterlaesst so nie eine halb geschriebene JSON-Datei, die
+// loadClips()/loadVideos() sonst stillschweigend als leere Liste lesen (und
+// beim naechsten Speichern endgueltig ueberschreiben) wuerden.
+function writeJsonAtomic(file, data) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const content = JSON.stringify(data, null, 2);
+  const tmpFile = `${file}.tmp`;
+  try {
+    fs.writeFileSync(tmpFile, content, 'utf-8');
+    fs.renameSync(tmpFile, file);
+  } catch {
+    // Windows: rename kann kurzzeitig scheitern, wenn z.B. ein Virenscanner
+    // die Zieldatei offen hat -- dann direkt schreiben.
+    fs.writeFileSync(file, content, 'utf-8');
+    fs.rmSync(tmpFile, { force: true });
+  }
+}
+
 function loadClips() {
   ensureFile(PROJECT_FILE, '[]');
   const raw = fs.readFileSync(PROJECT_FILE, 'utf-8');
@@ -37,8 +56,7 @@ function loadClips() {
 }
 
 function saveClips(clips) {
-  ensureFile(PROJECT_FILE, '[]');
-  fs.writeFileSync(PROJECT_FILE, JSON.stringify(clips, null, 2), 'utf-8');
+  writeJsonAtomic(PROJECT_FILE, clips);
 }
 
 // Projektweite Einstellungen (aktuell nur der Gesamttitel des Rankings, der
@@ -55,8 +73,7 @@ function loadSettings() {
 }
 
 function saveSettings(settings) {
-  ensureFile(SETTINGS_FILE, JSON.stringify(DEFAULT_SETTINGS));
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  writeJsonAtomic(SETTINGS_FILE, settings);
 }
 
-module.exports = { loadClips, saveClips, loadSettings, saveSettings, DATA_DIR };
+module.exports = { loadClips, saveClips, loadSettings, saveSettings, writeJsonAtomic, DATA_DIR };

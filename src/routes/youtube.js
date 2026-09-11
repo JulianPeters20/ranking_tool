@@ -47,12 +47,12 @@ router.get('/auth/youtube/start', (req, res) => {
 });
 
 router.get('/auth/youtube/callback', async (req, res) => {
-  const { code, error } = req.query;
+  const { code, state, error } = req.query;
   if (error) {
     return res.redirect(`/schedule.html?youtube_auth=error&message=${encodeURIComponent(String(error))}`);
   }
   try {
-    await youtubeService.handleOAuthCallback(String(code));
+    await youtubeService.handleOAuthCallback(code ? String(code) : '', String(state || ''));
     res.redirect('/schedule.html?youtube_auth=success');
   } catch (err) {
     res.redirect(`/schedule.html?youtube_auth=error&message=${encodeURIComponent(String(err.message || err))}`);

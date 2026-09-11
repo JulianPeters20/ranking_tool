@@ -10,7 +10,10 @@
   <header>
     <h1>Ranking Clips Tool</h1>
     <p class="subtitle">TikTok-Links einfügen, Reihenfolge festlegen, Ranking-Video rendern.</p>
-    <p class="subtitle"><a href="/schedule.html">YouTube Planer &rarr;</a></p>
+    <nav class="app-nav" aria-label="Bereiche">
+      <a href="/index.html" class="app-nav-link is-active" aria-current="page">Ranking erstellen</a>
+      <a href="/schedule.html" class="app-nav-link">YouTube Planer</a>
+    </nav>
   </header>
 
   <main>
@@ -26,7 +29,7 @@
       <input type="text" id="overall-title" placeholder="z.B. RANKING BESTE KÜCHEN MOMENTE" />
 
       <div id="title-word-editor" class="title-word-editor"></div>
-      <p class="hint">Wort anklicken, um es einzufärben (z.B. rot/gelb) &mdash; nochmal anklicken setzt es zurück auf Weiß.</p>
+      <p class="hint">Wort anklicken, um es einzufärben (z.B. rot/gelb) &mdash; nochmal anklicken wählt eine andere Farbe, das kleine &times; setzt es zurück auf Weiß.</p>
 
       <div class="title-style-row">
         <div class="field">
@@ -41,7 +44,7 @@
     </section>
 
     <section class="clip-list-section">
-      <h2>Clips <span class="hint">(Reihenfolge = Abspielreihenfolge, per Drag &amp; Drop verschiebbar &mdash; Platznummer daneben frei editierbar)</span></h2>
+      <h2>Clips <span class="hint">(Reihenfolge = Abspielreihenfolge, am Griff &#x283F; per Drag &amp; Drop verschiebbar &mdash; Platznummer daneben frei editierbar)</span></h2>
       <ul id="clip-list"></ul>
       <p id="clip-list-empty" class="hint">Noch keine Clips hinzugefügt.</p>
     </section>
@@ -51,7 +54,10 @@
       <p id="render-status"></p>
       <div id="render-result" hidden>
         <video id="render-video" controls></video>
-        <a id="render-download" href="#" download>Video herunterladen</a>
+        <div class="render-actions">
+          <a href="/schedule.html" class="button-link">Im YouTube Planer einplanen &rarr;</a>
+          <a id="render-download" href="#" class="button-link secondary" download>Herunterladen</a>
+        </div>
       </div>
     </section>
   </main>

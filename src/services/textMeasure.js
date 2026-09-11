@@ -20,8 +20,31 @@ function loadFont(fontFilePath) {
   return font;
 }
 
+// Fallback ohne OpenType-Feature-Verarbeitung: Glyph-Vorschubbreiten plus
+// Kerning-Paare direkt aufsummieren.
+function measureWidthSimple(font, text, fontSize) {
+  const scale = fontSize / font.unitsPerEm;
+  let width = 0;
+  let previous = null;
+  for (const char of text) {
+    const glyph = font.charToGlyph(char);
+    if (previous) width += font.getKerningValue(previous, glyph) * scale;
+    width += (glyph.advanceWidth || 0) * scale;
+    previous = glyph;
+  }
+  return width;
+}
+
 function measureWidth(fontFilePath, text, fontSize) {
-  return loadFont(fontFilePath).getAdvanceWidth(text, fontSize);
+  const font = loadFont(fontFilePath);
+  try {
+    return font.getAdvanceWidth(text, fontSize);
+  } catch {
+    // opentype.js unterstuetzt nicht alle GSUB-Lookup-Typen und wirft dann
+    // (z.B. Bahnschrift: "lookupType: 6 - substFormat: 2 is not yet
+    // supported") -- ohne Fallback bricht das komplette Rendering ab.
+    return measureWidthSimple(font, text, fontSize);
+  }
 }
 
 module.exports = { measureWidth };

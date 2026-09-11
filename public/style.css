@@ -32,6 +32,39 @@ header h1 {
   margin: 4px 0 0;
 }
 
+/* Umschalter zwischen Haupttool und YouTube-Planer (auf beiden Seiten) */
+.app-nav {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 4px;
+  background: #e8e8ed;
+  border-radius: 999px;
+}
+
+.app-nav-link {
+  padding: 8px 20px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.app-nav-link:hover { color: var(--text); }
+
+.app-nav-link.is-active {
+  background: var(--card-bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.app-nav-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 main {
   max-width: 640px;
   margin: 0 auto;
@@ -198,7 +231,6 @@ h2 { margin-top: 0; }
   border-radius: 10px;
   padding: 10px;
   background: #fafafa;
-  cursor: grab;
 }
 
 .clip-card.dragging { opacity: 0.4; }
@@ -207,6 +239,8 @@ h2 { margin-top: 0; }
   font-size: 1.2rem;
   color: var(--muted);
   user-select: none;
+  cursor: grab;
+  padding: 8px 2px;
 }
 
 .clip-card .thumb {
@@ -355,6 +389,29 @@ h2 { margin-top: 0; }
   margin: 12px 0;
 }
 
-.render-section a { color: var(--accent); font-weight: 600; }
+.render-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button-link {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-link.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+.button-link:hover { filter: brightness(0.95); }
 
 #render-status { color: var(--muted); }

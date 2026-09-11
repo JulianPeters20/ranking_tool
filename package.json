@@ -6,6 +6,7 @@
   "main": "server.js",
   "scripts": {
     "setup": "node scripts/download-ytdlp.js",
+    "update-ytdlp": "node scripts/download-ytdlp.js --force",
     "start": "node server.js"
   },
   "dependencies": {

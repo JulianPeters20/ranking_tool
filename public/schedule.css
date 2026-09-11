@@ -7,7 +7,8 @@ main { max-width: 1000px; }
   margin-bottom: 10px;
 }
 
-.field-row input[type="text"] {
+.field-row input[type="text"],
+.field-row input[type="password"] {
   flex: 1;
   min-width: 180px;
   padding: 8px 10px;

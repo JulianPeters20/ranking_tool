@@ -11,6 +11,7 @@
 //   Audit durch ist, greift die Planung automatisch.
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const { DATA_DIR } = require('./state');
 
@@ -82,16 +83,28 @@ function getOAuth2Client() {
   return client;
 }
 
+// Zufaelliger state-Wert pro Anmeldeversuch: Der Callback akzeptiert nur
+// Codes aus einem hier gestarteten Flow -- sonst koennte eine fremde Seite
+// per Link einen Code unterschieben und so einen fremden Kanal verbinden.
+let pendingOAuthState = null;
+
 function getAuthUrl() {
   const client = getOAuth2Client();
+  pendingOAuthState = crypto.randomBytes(16).toString('hex');
   return client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: [UPLOAD_SCOPE]
+    scope: [UPLOAD_SCOPE],
+    state: pendingOAuthState
   });
 }
 
-async function handleOAuthCallback(code) {
+async function handleOAuthCallback(code, state) {
+  if (!pendingOAuthState || state !== pendingOAuthState) {
+    throw new Error('Ungültige oder abgelaufene Anmeldeanfrage – bitte "Mit YouTube verbinden" erneut klicken.');
+  }
+  pendingOAuthState = null;
+  if (!code) throw new Error('Kein Autorisierungscode von Google erhalten.');
   const client = getOAuth2Client();
   const { tokens } = await client.getToken(code);
   saveToken(tokens);
@@ -101,9 +114,18 @@ async function getChannelInfo() {
   if (!isConnected()) return null;
   const auth = getOAuth2Client();
   const youtube = google.youtube({ version: 'v3', auth });
-  const res = await youtube.channels.list({ part: ['snippet'], mine: true });
-  const channel = res.data.items && res.data.items[0];
-  return channel ? { title: channel.snippet.title } : null;
+  try {
+    const res = await youtube.channels.list({ part: ['snippet'], mine: true });
+    const channel = res.data.items && res.data.items[0];
+    return channel ? { title: channel.snippet.title } : null;
+  } catch (err) {
+    // Der (bewusst einzige) Scope youtube.upload erlaubt keinen Lesezugriff
+    // auf Kanaldaten -> Google antwortet "insufficient authentication
+    // scopes". Das beweist aber, dass das Token gueltig ist: kein Fehler,
+    // nur kein Kanalname verfuegbar.
+    if (/insufficient/i.test(String(err.message))) return null;
+    throw err;
+  }
 }
 
 // Laedt die Videodatei hoch, privat + mit publishAt fuer die geplante Uhrzeit.
