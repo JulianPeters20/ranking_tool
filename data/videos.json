@@ -1,5 +1,44 @@
 [
   {
+    "id": "14bf6157-3380-4e96-bbb2-c6a72b6a0ef9",
+    "filePath": "output/final_1789121185638.mp4",
+    "thumbnailPath": "output/thumbnails/14bf6157-3380-4e96-bbb2-c6a72b6a0ef9.jpg",
+    "createdAt": "2026-09-11T10:06:25.908Z",
+    "youtubeTitle": "Cutest Puppies 😍",
+    "youtubeDescription": "Ranking the cutest Puppies on the Internet",
+    "tags": [
+      "viral",
+      "shorts",
+      "puppies",
+      "dogs",
+      "cute"
+    ],
+    "madeForKids": false,
+    "scheduledAt": "2026-09-12T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "RFWqUCBjc5M",
+    "error": null
+  },
+  {
+    "id": "fa08a82c-58bf-4840-b6c0-92ab171dc475",
+    "filePath": "output/final_1789117551640.mp4",
+    "thumbnailPath": "output/thumbnails/fa08a82c-58bf-4840-b6c0-92ab171dc475.jpg",
+    "createdAt": "2026-09-11T09:05:51.912Z",
+    "youtubeTitle": "Best Golden Retriever Faces",
+    "youtubeDescription": "Ranking Best Golden Retriever Faces",
+    "tags": [
+      "viral",
+      "shorts",
+      "dogs",
+      "ranking"
+    ],
+    "madeForKids": false,
+    "scheduledAt": "2026-09-11T16:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "ZiLIEIbZyJ8",
+    "error": null
+  },
+  {
     "id": "194178bf-4ae6-4923-9079-4fe9d3e24784",
     "filePath": "output/final_1789115731381.mp4",
     "thumbnailPath": "output/thumbnails/194178bf-4ae6-4923-9079-4fe9d3e24784.jpg",

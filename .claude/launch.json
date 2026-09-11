@@ -6,6 +6,18 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.js"],
       "port": 3000
+    },
+    {
+      "name": "voicebox-backend",
+      "runtimeExecutable": "pwsh",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\Projects\\voicebox\\start-backend.ps1"],
+      "port": 17493
+    },
+    {
+      "name": "voicebox-web",
+      "runtimeExecutable": "pwsh",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "D:\\Projects\\voicebox\\start-web.ps1"],
+      "port": 5173
     }
   ]
 }

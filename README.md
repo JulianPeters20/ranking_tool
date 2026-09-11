@@ -25,6 +25,26 @@ npm start
 
 Dann im Browser öffnen: http://localhost:3000
 
+### Starten und Stoppen per Skript
+
+Statt `npm start` in einem offenen Terminal lassen sich das Ranking-Tool und
+(falls eingerichtet) Voicebox im Hintergrund steuern — per Doppelklick auf
+**`Server starten.cmd`** / **`Server stoppen.cmd`** oder im Terminal:
+
+```powershell
+.\server.ps1 start             # alles starten (Ranking-Tool + Voicebox), Browser öffnen
+.\server.ps1 start ranking     # nur das Ranking-Tool
+.\server.ps1 stop voicebox     # nur Voicebox beenden
+.\server.ps1 status            # was läuft gerade?
+.\server.ps1 restart -NoBrowser
+```
+
+Die Server laufen unsichtbar weiter, auch wenn das Fenster geschlossen wird;
+ihre Ausgaben stehen in `.run\<dienst>.log`. Voicebox wird unter
+`D:\Projects\voicebox` erwartet (Pfad oben in `server.ps1` anpassbar). Beim
+Stoppen werden nur Prozesse beendet, die zum jeweiligen Dienst passen — ein
+fremdes Programm auf demselben Port bleibt unangetastet.
+
 Der Server ist standardmäßig nur vom eigenen Rechner aus erreichbar
 (`127.0.0.1`), da die API keine Anmeldung hat. Für Zugriff aus dem lokalen
 Netzwerk bewusst `HOST=0.0.0.0` setzen.
