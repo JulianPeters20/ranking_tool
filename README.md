@@ -1,0 +1,218 @@
+# Ranking Clips Tool
+
+Lokales, kostenloses Tool: TikTok-Links einfügen, Clips werden automatisch
+heruntergeladen, pro Clip Ausschnitt/Reihenfolge/Titel festlegen (inkl.
+Videovorschau zur Auswahl) — daraus wird ein fertiges Ranking-Video gerendert:
+ein wortweise einfärbbarer Gesamttitel oben und eine permanente Rangliste
+links (aufsteigend sortiert), in der die Clip-Titel erscheinen, sobald der
+jeweilige Clip dran war/ist. Das ist die einzige Stelle, an der ein Clip-Titel
+zu sehen ist — es gibt keine zusätzliche Einblendung im Video selbst.
+
+Läuft komplett lokal, keine Cloud, kein Account, kein Abo.
+
+## Voraussetzungen
+
+- Node.js (getestet mit v26)
+- ffmpeg im PATH verfügbar (`ffmpeg -version` sollte funktionieren)
+
+## Setup
+
+```bash
+npm install
+npm run setup   # lädt einmalig die yt-dlp-Binary herunter (bin/yt-dlp.exe)
+npm start
+```
+
+Dann im Browser öffnen: http://localhost:3000
+
+## Nutzung
+
+1. TikTok-Links (einer pro Zeile) einfügen, "Clips hinzufügen" klicken.
+2. Warten bis alle Clips den Status "ready" haben (Thumbnail + Dauer erscheinen).
+3. Optional einen **Gesamttitel** fürs Ranking eintragen (z.B. "RANKING BEST
+   PARKOUR FAILS") — erscheint als Kopfzeile auf jedem Clip im Endvideo.
+   Unter dem Textfeld erscheint der Titel als anklickbare Wort-Chips: **ein
+   Wort anklicken öffnet einen Farbwähler** (z.B. Rot oder Gelb für einzelne
+   Wörter), nochmal anklicken erlaubt eine andere Farbe, der kleine "×" setzt
+   es zurück auf Weiß. Schriftart und -größe gelten einheitlich für den
+   gesamten Titel (eigene Dropdown-/Zahlen-Felder daneben).
+4. Reihenfolge per Drag & Drop festlegen — sie bestimmt die
+   Abspielreihenfolge im Video. Standardmäßig bekommt der **oberste** Clip
+   die höchste Platznummer, der **unterste** Clip ist **#1** (klassisches
+   Countdown-Format). Die Platznummer lässt sich direkt daneben frei
+   überschreiben (z.B. für Lücken wie #10, #7, #3) — leeres Feld setzt sie
+   zurück auf die automatische, positionsbasierte Nummer.
+   Alle Platznummern sind während des ganzen Videos permanent links im Bild
+   sichtbar, **aufsteigend sortiert** (#1 oben, höchster Platz unten). Der
+   Titel eines Clips erscheint in dieser Liste, sobald der Clip in der
+   Wiedergabe an der Reihe war/ist — beim letzten Clip ist die Liste dadurch
+   vollständig gefüllt. Der gerade aktive Eintrag ist zusätzlich hervorgehoben
+   (größer, Akzentfarbe).
+5. Pro Clip **Start/Ende in Sekunden** eintragen, um nur einen Ausschnitt ins
+   Endvideo zu übernehmen (Default: ganzer Clip). Ende leer lassen = bis zum
+   Clipende. Über den Button **"Vorschau"** lässt sich der Clip direkt im
+   Browser abspielen; die Buttons **"Start hier setzen"** / **"Ende hier
+   setzen"** übernehmen die aktuelle Abspielposition des Vorschau-Players in
+   die Start-/Ende-Felder.
+6. Optional pro Clip einen kurzen Titel eintragen. Dieser erscheint **nur**
+   in der Rangliste (Punkt 4), sobald der Clip "aufgedeckt" ist — nicht im
+   Video selbst.
+7. "Video rendern" klicken. Das fertige Video liegt danach unter
+   `data/output/final_<timestamp>.mp4` und kann im Browser direkt angeschaut
+   oder heruntergeladen werden. Es erscheint außerdem automatisch im
+   **YouTube Planer** (Link oben auf der Seite), bereit zum Einplanen.
+
+## YouTube Planer — automatischer geplanter Upload
+
+Über "YouTube Planer" (`/schedule.html`) lässt sich jedes fertig gerenderte
+Video mit Titel/Beschreibung/Tags versehen und per Drag & Drop auf einen
+Kalender-Zeitpunkt ziehen. Das Tool lädt es daraufhin zeitnah als **privates**
+Video zu YouTube hoch und setzt YouTubes eigenes "Veröffentlichen am"-Feld auf
+den gewählten Zeitpunkt — YouTube macht es dann selbstständig pünktlich
+öffentlich. Der Rechner muss zur eigentlichen Veröffentlichungszeit nicht
+laufen; ein unterbrochener Upload (App war zu, kein Internet) wird beim
+nächsten Start und danach alle 5 Minuten automatisch erneut versucht.
+
+### Einmalige Einrichtung bei Google (bevor der Planer nutzbar ist)
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → neues Projekt
+   anlegen → **YouTube Data API v3** aktivieren ("APIs & Dienste" →
+   "Bibliothek").
+2. "APIs & Dienste" → **Google Auth Platform** (seit 2024 der neue Name für
+   den frühere "OAuth-Zustimmungsbildschirm", aufgeteilt in mehrere Tabs):
+   - Tab **"Branding"**: Nutzertyp **Extern**. **App-Name:** frei wählbar,
+     darf aber laut Google-Richtlinie **kein** "YouTube"/"Google" enthalten
+     (wird sofort beim Speichern abgelehnt) — z.B. einfach
+     `Ranking Clips Planer`.
+   - Tab **"Audience"**: dich selbst unter "Test users" hinzufügen.
+     Anschließend dort den **"Publishing status"** von "Testing" auf
+     **"In Production"** umstellen (ein einfacher Klick, **keine**
+     Google-Verifizierung nötig — Direktlink:
+     [console.cloud.google.com/auth/audience](https://console.cloud.google.com/auth/audience)).
+     Das ist wichtig: Ohne diesen Schritt läuft dein Zugangs-Token beim
+     sensiblen Scope `youtube.upload` nach 7 Tagen ab und du müsstest dich
+     wöchentlich neu anmelden.
+3. Tab **"Clients"** (bzw. "Anmeldedaten") → **OAuth-Client-ID erstellen** →
+   Typ **Web-Anwendung** → als Redirect-URI exakt einfügen:
+   `http://localhost:3000/auth/youtube/callback`
+4. Client-ID und Client-Secret kopieren, auf der Planer-Seite eintragen,
+   "Speichern" klicken, dann "Mit YouTube verbinden" klicken und den
+   Google-Anmeldedialog durchlaufen (inkl. Klick durch die "Google hat diese
+   App nicht überprüft"-Warnung — das ist bei einer nur selbst genutzten App
+   normal und unbedenklich).
+5. **Compliance-Audit beantragen:** Neue/unauditierte API-Projekte setzen
+   alle per API hochgeladenen Videos automatisch auf **privat** — dauerhaft,
+   unabhängig vom geplanten Veröffentlichungszeitpunkt. Formular hier
+   ausfüllen: <https://support.google.com/youtube/contact/yt_api_form>
+   (laut Erfahrungsberichten ca. 1 Woche Bearbeitungszeit). **Bis der Audit
+   durch ist:** hochgeladene Videos bleiben privat, du kannst sie in der
+   Zwischenzeit manuell in [YouTube Studio](https://studio.youtube.com) auf
+   "öffentlich" stellen, sobald sie erscheinen.
+
+### "In Produktion" vs. volle Verifizierung — zwei unterschiedliche Dinge
+
+Leicht zu verwechseln, deshalb explizit:
+
+- **"Publishing status: In Production"** (Schritt 2 oben) ist ein einfacher
+  Toggle ohne Antrag. Er löst ausschließlich das 7-Tage-Ablauf-Problem der
+  Refresh-Tokens. **Mehr braucht der Planer im Kern nicht.**
+- **Volle Google-Verifizierung inkl. Domain-Eigentumsnachweis** ist ein
+  separater, deutlich aufwändigerer Prozess. Er ist nur nötig, damit
+  hochgeladene Videos automatisch (statt manuell) öffentlich werden — siehe
+  Compliance-Audit in Schritt 5.
+
+**Bekanntes, ungelöstes Problem:** Der Domain-Eigentumsnachweis über Google
+Search Console (URL-Prefix-Methode) kann mit "Startseite nicht auf Sie
+registriert" fehlschlagen, selbst wenn das Konto dort als Inhaber verifiziert
+ist — auch bei mehreren verifizierten Konten und korrektem Eintrag unter
+"Authorized domains". Vermutete Ursache: Google verlangt für diesen Check
+eventuell eine **Domain-Property-Verifizierung per DNS-Eintrag** statt der
+URL-Prefix-Methode — auf einer geteilten `vercel.app`-Subdomain ohne eigene
+Domain nicht möglich. Nicht abschließend geklärt.
+
+**Akzeptierter Workaround (aktueller Stand):** Die Domain-Verifizierung wird
+nicht weiterverfolgt. Videos bleiben nach dem Upload privat; sie werden
+einmalig manuell in YouTube Studio auf "öffentlich" gestellt (Schritt 5).
+Für ein Ein-Personen-Tool ist das ein vertretbarer Mehraufwand von wenigen
+Klicks pro Video.
+
+### Grenzen
+
+- **Quota:** Ein Upload kostet 1.600 der standardmäßig 10.000 täglichen
+  Einheiten → ca. 6 Video-Uploads pro Tag ohne Antrag auf mehr Kontingent.
+- Für YouTube Shorts reicht das vom Tool erzeugte 9:16-Format automatisch
+  aus (zusätzlich wird `#Shorts` an die Beschreibung angehängt). Uploads über
+  3 Minuten Länge zählen nicht mehr als Short.
+- "Made for Kids" (COPPA-Pflichtangabe) ist pro Video im Planer ankreuzbar,
+  Standard ist "Nein" — die rechtliche Einordnung bleibt in deiner
+  Verantwortung.
+
+## Hinweis
+
+Das Herunterladen fremder TikTok-Videos zur privaten Weiterverarbeitung kann
+gegen TikToks Nutzungsbedingungen verstoßen. Nutzung auf eigene
+Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
+
+## Technische Hinweise
+
+- `assets/fonts/arialbd.ttf` ist eine lokale Kopie von Arial Bold, die ffmpeg
+  für die Rangliste nutzt. Grund: ffmpegs `drawtext`-Filter kann einen
+  Laufwerksbuchstaben (`C:\...`) im Font-/Textdateipfad nicht zuverlässig
+  escapen, daher rendert das Tool mit dem Projektordner als Arbeitsverzeichnis
+  und ausschließlich relativen Pfaden.
+- **Wortweise Titel-Einfärbung:** ffmpegs `drawtext` kann nicht mehrere
+  Farben in einer Zeile mischen, daher ist jedes Wort des Gesamttitels ein
+  eigener `drawtext`-Filter mit eigener x-Position. Da ffmpeg die berechnete
+  Breite eines Filters keinem anderen Filter zur Verfügung stellt, misst das
+  Tool die Wortbreiten selbst — über `opentype.js` (reines JS, liest die
+  echten Font-Metriken direkt aus der `.ttf`-Datei) statt einer Schätzung.
+  Passt der Titel bei der gewählten Größe nicht in die Breite, wird die
+  Schriftgröße automatisch (einheitlich für alle Wörter) verkleinert.
+  Titel-Filter werden einmal pro Rendering berechnet und für alle Clips
+  wiederverwendet, da der Gesamttitel auf jedem Clip identisch ist.
+- Die Platznummer wird pro Clip als `rankOverride` gespeichert (`null` =
+  automatisch aus der Position berechnet). Drag & Drop ändert nur die
+  Abspielreihenfolge, nie eine bereits manuell gesetzte Nummer.
+- Trimming (`trimStart`/`trimEnd`, Sekunden) wird als `-ss`/`-to` **vor** dem
+  `-i` an ffmpeg übergeben (Input-Seeking). Das ist deutlich schneller als
+  Output-seitiges Trimmen, bei kurzen TikTok-Clips aber minimal ungenau
+  (Abweichung im Bereich von Zehntelsekunden möglich).
+- Die permanente Rangliste ist **aufsteigend nach Platznummer sortiert**
+  (unabhängig von der Abspielreihenfolge), wächst linear nach unten
+  (`y = 210 + Index * 92px`) und ist für ca. 5-15 Clips ausgelegt — bei sehr
+  vielen Clips kann die Liste den unteren Bildbereich erreichen. Ob ein Clip
+  "aufgedeckt" ist (Titel sichtbar), wird über seinen Index in der
+  Abspiel-Reihenfolge bestimmt (`Index <= aktueller Index`), nicht über seine
+  Platznummer — Titel-Text pro Listeneintrag wird auf 22 Zeichen gekürzt,
+  Emojis werden dabei entfernt (Emojis erscheinen aktuell gar nicht im
+  gerenderten Video, siehe unten).
+- Schriftart/-größe des Gesamttitels liegen in `data/settings.json`
+  (`titleFont`, `titleFontSize`), Wortfarben in `titleWordColors`
+  (Wortindex → Hexfarbe). 6 Schriftarten stehen lokal in `assets/fonts/`
+  bereit (Arial Bold, Impact, Comic Sans Bold, Arial Black, Bahnschrift,
+  Georgia Bold) — weitere lassen sich in `src/services/fonts.js` ergänzen
+  (Datei muss im Projektordner liegen, siehe Escaping-Hinweis oben).
+- Die Videovorschau lädt die Originaldatei erst bei Klick auf "Vorschau"
+  (`preload="none"`), um nicht alle Clips gleichzeitig zu laden.
+- **YouTube-Zugangsdaten/Tokens** liegen unverschlüsselt in
+  `data/youtube_credentials.json` und `data/youtube_token.json` (beide in
+  `.gitignore`) — für ein rein lokales Single-User-Tool ausreichend, aber
+  nicht für eine Mehrbenutzer- oder Cloud-Umgebung gedacht.
+- Der YouTube-Planer (`public/schedule.html`/`schedule.js`) pollt den
+  Server alle 5 Sekunden für Upload-Status-Updates, rendert dabei aber nur
+  neu, wenn sich Daten tatsächlich geändert haben **und** kein Formularfeld
+  der Bibliothek/des Kalenders gerade fokussiert ist — sonst würde ein Poll
+  mitten im Tippen (Titel/Beschreibung/Tags) das Eingabefeld zerstören.
+- Der Wochenkalender zeigt feste Stunden-Slots 06:00–23:00 (kein 24h-Bereich,
+  kein Minuten-Raster beim Ziehen) — die genaue Uhrzeit lässt sich nach dem
+  Ablegen über Klick auf die Zeitanzeige der Karte nachjustieren.
+
+## Basis-Version — bewusst weggelassen
+
+Dies ist eine bewusst schlanke erste Version. Nicht enthalten (könnten bei
+Bedarf ergänzt werden): mehrere Projekte parallel, Accounts, Vorlagen/Themes,
+automatische Untertitel, Emoji-Anzeige im Video, Batch-Export, Trimmen per
+Zeitleisten-Scrubber (aktuell Vorschau-Video + Zahlen-Eingabe), automatischer
+Zeilenumbruch bei sehr langen Gesamttiteln, mehrzeilige Gesamttitel,
+Minuten-genaues Kalender-Raster, Upload zu mehreren YouTube-Kanälen,
+wiederverwendbare Beschreibungs-/Tag-Vorlagen.

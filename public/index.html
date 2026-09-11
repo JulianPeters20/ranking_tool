@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ranking Clips Tool</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Ranking Clips Tool</h1>
+    <p class="subtitle">TikTok-Links einfügen, Reihenfolge festlegen, Ranking-Video rendern.</p>
+    <p class="subtitle"><a href="/schedule.html">YouTube Planer &rarr;</a></p>
+  </header>
+
+  <main>
+    <section class="add-clips">
+      <label for="links">TikTok-Links (einer pro Zeile)</label>
+      <textarea id="links" rows="4" placeholder="https://www.tiktok.com/@user/video/1234567890&#10;https://www.tiktok.com/@user/video/0987654321"></textarea>
+      <button id="add-clips-btn">Clips hinzufügen</button>
+      <p id="add-clips-error" class="error"></p>
+    </section>
+
+    <section class="overall-title-section">
+      <label for="overall-title">Gesamttitel des Rankings <span class="hint">(erscheint als Kopfzeile auf jedem Clip, z.B. "RANKING BESTE KÜCHEN MOMENTE")</span></label>
+      <input type="text" id="overall-title" placeholder="z.B. RANKING BESTE KÜCHEN MOMENTE" />
+
+      <div id="title-word-editor" class="title-word-editor"></div>
+      <p class="hint">Wort anklicken, um es einzufärben (z.B. rot/gelb) &mdash; nochmal anklicken setzt es zurück auf Weiß.</p>
+
+      <div class="title-style-row">
+        <div class="field">
+          <label for="title-font">Schriftart <span class="hint">(gesamter Titel, einheitlich)</span></label>
+          <select id="title-font"></select>
+        </div>
+        <div class="field field-size">
+          <label for="title-size">Schriftgröße</label>
+          <input type="number" id="title-size" min="16" max="120" value="62" />
+        </div>
+      </div>
+    </section>
+
+    <section class="clip-list-section">
+      <h2>Clips <span class="hint">(Reihenfolge = Abspielreihenfolge, per Drag &amp; Drop verschiebbar &mdash; Platznummer daneben frei editierbar)</span></h2>
+      <ul id="clip-list"></ul>
+      <p id="clip-list-empty" class="hint">Noch keine Clips hinzugefügt.</p>
+    </section>
+
+    <section class="render-section">
+      <button id="render-btn">Video rendern</button>
+      <p id="render-status"></p>
+      <div id="render-result" hidden>
+        <video id="render-video" controls></video>
+        <a id="render-download" href="#" download>Video herunterladen</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

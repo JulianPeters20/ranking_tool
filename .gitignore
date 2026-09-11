@@ -1,0 +1,8 @@
+node_modules/
+data/clips/
+data/output/
+!data/clips/.gitkeep
+!data/output/.gitkeep
+bin/
+data/youtube_credentials.json
+data/youtube_token.json

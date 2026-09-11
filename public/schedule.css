@@ -1,0 +1,188 @@
+main { max-width: 1000px; }
+
+.field-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.field-row input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+#youtube-connect-section button,
+#unscheduled-section button {
+  margin-top: 0;
+}
+
+.video-card-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.video-card {
+  width: 220px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fafafa;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.video-card.dragging { opacity: 0.4; }
+
+.video-card-thumb {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  display: block;
+  background: #ddd;
+}
+
+.video-card-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.video-card-body input[type="text"],
+.video-card-body textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.kids-row {
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.video-card-meta { font-size: 0.75rem; }
+
+.video-card-delete {
+  background: transparent;
+  color: #c0392b;
+  border: 1px solid #c0392b55;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+}
+
+/* Kompakte Karten im Kalender */
+.video-card.compact {
+  width: 100%;
+  cursor: grab;
+  margin-bottom: 4px;
+}
+
+.video-card.compact .video-card-thumb { aspect-ratio: 16 / 9; }
+
+.video-card.compact .video-card-body { padding: 4px 6px; gap: 2px; }
+
+.video-card-title-compact {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.video-card-time { font-size: 0.7rem; color: var(--accent); font-weight: 700; }
+.video-card-status { font-size: 0.65rem; color: var(--muted); }
+
+.video-card-unschedule {
+  margin-top: 2px;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  background: var(--muted);
+}
+
+/* Kalender */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.calendar-nav button {
+  margin-top: 0;
+  padding: 6px 12px;
+}
+
+#cal-range-label { font-weight: 600; min-width: 160px; text-align: center; }
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(90px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+  margin-top: 12px;
+  max-height: 70vh;
+}
+
+.cal-corner,
+.cal-day-head,
+.cal-hour-label,
+.cal-cell {
+  background: #fff;
+}
+
+.cal-corner { position: sticky; top: 0; left: 0; z-index: 3; }
+
+.cal-day-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.cal-day-head.is-today { color: var(--accent); }
+
+.cal-hour-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding: 4px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.cal-cell {
+  min-height: 52px;
+  padding: 2px;
+}
+
+.cal-cell.drag-over { background: #ffe4ea; }

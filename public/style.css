@@ -1,0 +1,360 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6b6b6b;
+  --accent: #ff2d55;
+  --border: #e0e0e0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 24px 20px 8px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+label { font-weight: 600; display: block; margin-bottom: 6px; }
+
+textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+
+button {
+  margin-top: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #c9c9c9;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #c0392b;
+  min-height: 1.2em;
+  margin: 8px 0 0;
+}
+
+.hint {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+h2 { margin-top: 0; }
+
+.overall-title-section input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.title-style-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.title-style-row .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-style-row label {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0;
+}
+
+.title-style-row select,
+.title-style-row input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.title-style-row .field-size input {
+  width: 72px;
+}
+
+.title-word-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.title-word-chip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.title-word-chip {
+  margin-top: 0;
+  padding: 5px 10px;
+  background: #fff;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.title-word-color-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-word-reset {
+  margin: 0 0 0 -10px;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+#clip-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clip-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafafa;
+  cursor: grab;
+}
+
+.clip-card.dragging { opacity: 0.4; }
+
+.clip-card .drag-handle {
+  font-size: 1.2rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+.clip-card .thumb {
+  width: 54px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #ddd;
+  flex-shrink: 0;
+}
+
+.clip-card .rank-badge {
+  min-width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.clip-card .rank-input {
+  width: 42px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 0 2px 2px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--accent);
+  background: transparent;
+  text-align: left;
+  -moz-appearance: textfield;
+}
+
+.clip-card .rank-input:hover,
+.clip-card .rank-input:focus {
+  border-color: var(--border);
+  background: #fff;
+}
+
+.clip-card .rank-input::-webkit-outer-spin-button,
+.clip-card .rank-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.clip-card .clip-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.clip-card input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.clip-card .meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.trim-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.trim-row span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.trim-row .trim-unit {
+  margin-right: 4px;
+}
+
+.trim-input {
+  width: 56px;
+  padding: 3px 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.preview-toggle-btn {
+  margin-top: 0;
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  background: #efefef;
+  color: var(--text);
+}
+
+.preview-wrap {
+  margin-top: 8px;
+}
+
+.preview-video {
+  width: 100%;
+  max-width: 260px;
+  border-radius: 8px;
+  display: block;
+  background: #000;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.preview-actions button {
+  margin-top: 0;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  background: var(--text);
+}
+
+.clip-card .status-error { color: #c0392b; }
+.clip-card .status-downloading { color: #b8860b; }
+
+.clip-card .delete-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-top: 0;
+  padding: 4px 8px;
+}
+
+.render-section video {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 10px;
+  display: block;
+  margin: 12px 0;
+}
+
+.render-section a { color: var(--accent); font-weight: 600; }
+
+#render-status { color: var(--muted); }

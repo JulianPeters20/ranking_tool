@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube Planer</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="schedule.css" />
+</head>
+<body>
+  <header>
+    <h1>YouTube Planer</h1>
+    <p class="subtitle">Fertige Ranking-Videos mit Titel/Beschreibung versehen und per Drag &amp; Drop einplanen.</p>
+    <p class="subtitle"><a href="/index.html">&larr; zurück zum Ranking-Tool</a></p>
+  </header>
+
+  <main>
+    <section id="youtube-connect-section">
+      <h2>YouTube-Verbindung</h2>
+      <div id="youtube-not-connected">
+        <p class="hint">Client-ID und Client-Secret aus deinem Google-Cloud-Projekt eintragen (siehe README für die Einrichtung), danach verbinden.</p>
+        <div class="field-row">
+          <input type="text" id="yt-client-id" placeholder="Client-ID" />
+          <input type="text" id="yt-client-secret" placeholder="Client-Secret" />
+          <button id="yt-save-credentials-btn">Speichern</button>
+        </div>
+        <a id="yt-connect-link" href="/auth/youtube/start"><button id="yt-connect-btn" type="button">Mit YouTube verbinden</button></a>
+      </div>
+      <div id="youtube-connected" hidden>
+        <p>✅ Verbunden mit Kanal: <strong id="yt-channel-name"></strong></p>
+        <button id="yt-disconnect-btn">Trennen</button>
+      </div>
+      <p id="youtube-status-message" class="hint"></p>
+    </section>
+
+    <section id="unscheduled-section">
+      <h2>Unveröffentlichte Videos <span class="hint">(auf einen Kalender-Slot ziehen, um sie einzuplanen)</span></h2>
+      <div id="unscheduled-list" class="video-card-list"></div>
+      <p id="unscheduled-empty" class="hint">Noch keine fertig gerenderten Videos. Im Ranking-Tool ein Video rendern, dann erscheint es hier automatisch.</p>
+    </section>
+
+    <section id="calendar-section">
+      <div class="calendar-header">
+        <h2>Kalender</h2>
+        <div class="calendar-nav">
+          <button id="cal-prev-btn" type="button">&larr;</button>
+          <span id="cal-range-label"></span>
+          <button id="cal-today-btn" type="button">Heute</button>
+          <button id="cal-next-btn" type="button">&rarr;</button>
+        </div>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </section>
+  </main>
+
+  <script src="schedule.js"></script>
+</body>
+</html>

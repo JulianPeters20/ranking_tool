@@ -1,0 +1,16 @@
+{
+  "name": "ranking-clips-tool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lokales Tool: TikTok-Links einfuegen, Reihenfolge festlegen, Ranking-Video mit Rang-Overlay rendern.",
+  "main": "server.js",
+  "scripts": {
+    "setup": "node scripts/download-ytdlp.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "googleapis": "^178.1.1",
+    "opentype.js": "^2.0.0"
+  }
+}
