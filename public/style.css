@@ -124,6 +124,33 @@ button:disabled {
 
 h2 { margin-top: 0; }
 
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Zuruecksetzen loescht Daten -> zurueckhaltender Umriss-Button statt der
+   gefuellten Akzentfarbe der Hauptaktionen. */
+.button-secondary {
+  margin-top: 0;
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.button-secondary:hover:not(:disabled) { background: #fff0f3; }
+
+.button-secondary:disabled {
+  background: transparent;
+  color: #c9c9c9;
+  border-color: var(--border);
+}
+
 .overall-title-section input[type="text"] {
   width: 100%;
   padding: 10px;

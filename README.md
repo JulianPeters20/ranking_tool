@@ -93,6 +93,11 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
    oder heruntergeladen werden. Es erscheint außerdem automatisch im
    **YouTube Planer** (Umschalter oben auf der Seite bzw. Button direkt unter
    dem fertigen Video), bereit zum Einplanen.
+8. Neues Ranking beginnen: **"Ranking zurücksetzen"** (rechts neben der
+   Clip-Überschrift) entfernt nach einer Rückfrage alle Clips samt
+   heruntergeladener Dateien und leert Gesamttitel und Wortfarben.
+   Schriftart/-größe und bereits gerenderte Videos im Planer bleiben
+   erhalten. Während eines Renders ist das Zurücksetzen gesperrt.
 
 ## YouTube Planer — automatischer geplanter Upload
 

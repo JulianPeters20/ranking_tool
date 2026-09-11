@@ -3,6 +3,7 @@ const addBtn = document.getElementById('add-clips-btn');
 const addErrorEl = document.getElementById('add-clips-error');
 const listEl = document.getElementById('clip-list');
 const listEmptyEl = document.getElementById('clip-list-empty');
+const resetRankingBtn = document.getElementById('reset-ranking-btn');
 const renderBtn = document.getElementById('render-btn');
 const renderStatusEl = document.getElementById('render-status');
 const renderResultEl = document.getElementById('render-result');
@@ -224,6 +225,7 @@ function buildClipControls(clip) {
 function renderList() {
   listEl.innerHTML = '';
   listEmptyEl.hidden = clips.length > 0;
+  updateResetButton();
 
   for (const clip of clips) {
     const li = document.createElement('li');
@@ -365,9 +367,49 @@ async function updateTrim(id, rawStart, rawEnd, maxDuration) {
 }
 
 async function deleteClip(id) {
-  await fetchJson(`/api/clips/${id}`, { method: 'DELETE' });
+  try {
+    await fetchJson(`/api/clips/${id}`, { method: 'DELETE' });
+  } catch (err) {
+    alert(`Clip konnte nicht entfernt werden: ${err.message}`);
+  }
   await loadClips();
 }
+
+// Nichts zum Zuruecksetzen, solange weder Clips noch ein Gesamttitel da sind.
+function updateResetButton() {
+  resetRankingBtn.disabled = clips.length === 0 && !overallTitleEl.value.trim();
+}
+
+// Setzt das aktuelle Ranking fuer das naechste Video zurueck: alle Clips
+// (inkl. heruntergeladener Dateien) sowie Gesamttitel und Wortfarben.
+// Schriftart/-groesse und bereits gerenderte Videos im Planer bleiben.
+resetRankingBtn.addEventListener('click', async () => {
+  const count = clips.length;
+  const question = count > 0
+    ? `Ranking zurücksetzen?\n\nAlle ${count} Clips werden entfernt (inkl. der heruntergeladenen Dateien) und der Gesamttitel wird geleert.\n\nSchriftart, Schriftgröße und bereits gerenderte Videos im YouTube-Planer bleiben erhalten.`
+    : 'Gesamttitel und Wortfarben zurücksetzen?';
+  if (!confirm(question)) return;
+
+  resetRankingBtn.disabled = true;
+  try {
+    // Ein gerade verlassenes Titelfeld speichert evtl. noch -- ohne Warten
+    // kaeme der alte Titel nach dem Zuruecksetzen wieder zurueck.
+    await Promise.allSettled([...pendingSaves]);
+    const result = await fetchJson('/api/clips', { method: 'DELETE' });
+    addErrorEl.textContent = '';
+    renderStatusEl.textContent = '';
+    renderResultEl.hidden = true;
+    await loadSettings();
+    await loadClips();
+    if (result.failedFiles > 0) {
+      alert(`${result.failedFiles} Clip-Datei(en) konnten nicht gelöscht werden (evtl. von einem anderen Programm geöffnet). Die Clips sind trotzdem aus dem Ranking entfernt.`);
+    }
+  } catch (err) {
+    alert(`Zurücksetzen fehlgeschlagen: ${err.message}`);
+  } finally {
+    updateResetButton();
+  }
+});
 
 addBtn.addEventListener('click', async () => {
   addErrorEl.textContent = '';
@@ -513,6 +555,7 @@ async function setWordColor(index, color) {
 // 'input' (bei jedem Tastenanschlag) aktualisiert nur die Chip-Anzeige;
 // 'change' (bei Blur) speichert den Titeltext selbst auf dem Server.
 overallTitleEl.addEventListener('input', renderTitleWordEditor);
+overallTitleEl.addEventListener('input', updateResetButton);
 overallTitleEl.addEventListener('change', () => {
   sendJson('/api/settings', 'PUT', { title: overallTitleEl.value });
 });

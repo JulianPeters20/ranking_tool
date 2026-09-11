@@ -157,7 +157,37 @@ router.put('/clips/:id', (req, res) => {
   res.json(withRanks(clips)[idx]);
 });
 
+// Setzt das aktuelle Ranking fuer das naechste Video zurueck: entfernt alle
+// Clips samt heruntergeladener Dateien und leert Gesamttitel + Wortfarben.
+// Schriftart/-groesse bleiben, fertige Videos (videos.json) sind unberuehrt.
+// Noch laufende Downloads raeumen ihre Dateien selbst auf, sobald sie merken,
+// dass ihr Clip nicht mehr existiert (siehe POST /clips).
+router.delete('/clips', (req, res) => {
+  if (getRenderStatus().status === 'running') {
+    return res.status(409).json({ error: 'Während des Renderns kann das Ranking nicht zurückgesetzt werden.' });
+  }
+  const clips = loadClips();
+  let failedFiles = 0;
+  for (const clip of clips) {
+    try {
+      removeClipFiles(clip);
+      removeDownloadedFiles(clip.id);
+    } catch {
+      // Z.B. von einem anderen Programm gesperrte Datei -- der Clip wird
+      // trotzdem aus dem Ranking entfernt, die Datei bleibt liegen.
+      failedFiles += 1;
+    }
+  }
+  saveClips([]);
+  saveSettings({ ...loadSettings(), title: '', titleWordColors: {} });
+  res.json({ ok: true, removed: clips.length, failedFiles });
+});
+
 router.delete('/clips/:id', (req, res) => {
+  // Der Renderer liest die Clip-Dateien waehrend des Renderns.
+  if (getRenderStatus().status === 'running') {
+    return res.status(409).json({ error: 'Während des Renderns können keine Clips entfernt werden.' });
+  }
   const clips = loadClips();
   const idx = clips.findIndex((c) => c.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Clip nicht gefunden.' });
