@@ -6,6 +6,7 @@ data/output/*
 !data/clips/.gitkeep
 !data/output/.gitkeep
 data/*.tmp
+data/emoji-cache/
 bin/
 data/youtube_credentials.json
 data/youtube_token.json

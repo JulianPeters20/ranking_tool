@@ -10,6 +10,7 @@
 //              nicht gespielte Clips zeigen nur ihre Nummer. Das ist die
 //              EINZIGE Stelle, an der ein Clip-Titel angezeigt wird -- es
 //              gibt bewusst keine zusaetzliche Einblendung im Video selbst.
+//            - Emojis in Titeln als farbige Bilder (siehe emoji.js)
 //  Pass 2: alle normalisierten Zwischen-Clips verlustfrei aneinanderhaengen
 //          (gleiches Format nach Pass 1 -> "-c copy" reicht).
 const fs = require('fs');
@@ -17,7 +18,8 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { DATA_DIR } = require('./state');
 const { resolveTitleFont, DEFAULT_TITLE_FONT_KEY } = require('./fonts');
-const { measureWidth } = require('./textMeasure');
+const { measureWidth, capHeight } = require('./textMeasure');
+const { graphemes, segmentText, resolveEmojiImages } = require('./emoji');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
 const OUTPUT_DIR = path.join(DATA_DIR, 'output');
@@ -54,20 +56,18 @@ const BANNER_MAX_WIDTH = 1000;
 const BANNER_MIN_FONTSIZE = 26;
 const BANNER_DEFAULT_COLOR = '0xFFFFFF';
 
-// Neben den eigentlichen Emoji-Zeichen auch die unsichtbaren Bausteine
-// (Hautton-Modifier, Zero-Width-Joiner, Variation Selector, Keycap) entfernen
-// -- sonst bleiben davon Kaestchen/Luecken im gerenderten Text uebrig.
-const EMOJI_REGEX = /[\p{Extended_Pictographic}\p{Emoji_Modifier}\u200D\uFE0F\u20E3]/gu;
+// Emoji-Bilder: Kantenlaenge relativ zur Schriftgroesse, Abstand danach und
+// wie weit sie (wie Emoji-Glyphen in Schriften) unter die Grundlinie reichen.
+const EMOJI_SIZE_RATIO = 1.05;
+const EMOJI_GAP_RATIO = 0.08;
+const EMOJI_BELOW_BASELINE_RATIO = 0.12;
 
-// Emojis erscheinen nicht im Video (die gebuendelten Schriften haben keine
-// Emoji-Glyphen) -- in Rangliste und Gesamttitel werden sie daher entfernt.
-function stripEmoji(text) {
-  return text.replace(EMOJI_REGEX, '').replace(/\s+/g, ' ').trim();
-}
-
+// Zaehlt Grapheme statt UTF-16-Einheiten, damit ein Emoji nicht mittendrin
+// abgeschnitten wird.
 function truncate(text, maxChars) {
-  if (text.length <= maxChars) return text;
-  return `${text.slice(0, maxChars - 1).trim()}…`;
+  const chars = graphemes(text);
+  if (chars.length <= maxChars) return text;
+  return `${chars.slice(0, maxChars - 1).join('').trim()}…`;
 }
 
 // '#rrggbb' (aus <input type=color>) -> "0xRRGGBB", das Format, das ffmpegs
@@ -135,6 +135,58 @@ function toRelativeFfmpegPath(absPath) {
   return toFfmpegPath(path.relative(PROJECT_ROOT, absPath));
 }
 
+function emojiMetrics(fontSize) {
+  const size = Math.round(fontSize * EMOJI_SIZE_RATIO);
+  return { size, advance: size + Math.round(fontSize * EMOJI_GAP_RATIO) };
+}
+
+// Breite einer Folge aus Text- und Emoji-Stuecken. Nicht verfuegbare Emojis
+// (Bild fehlt) werden weggelassen und zaehlen daher nicht mit.
+function measureSegments(segments, fontFile, fontSize, emojiImages) {
+  const { advance } = emojiMetrics(fontSize);
+  return segments.reduce((sum, seg) => {
+    if (seg.emoji) return sum + (emojiImages.get(seg.text) ? advance : 0);
+    return sum + measureWidth(fontFile, seg.text, fontSize);
+  }, 0);
+}
+
+// Setzt Text- und Emoji-Stuecke nebeneinander auf eine gemeinsame
+// Grundlinie: Text als drawtext (y_align=baseline), Emojis als Overlay-Bild.
+// Text kommt ueber Textdateien (beliebige Zeichen wie Kommas, Doppelpunkte,
+// Anfuehrungszeichen), expansion=none, weil drawtext sonst '%' als Beginn
+// einer %{...}-Sequenz interpretiert ("Stray %" -> falscher Text).
+function layoutSegments({ segments, fontFile, fontSize, color, x, baselineY, emojiImages, filePrefix, borderw }) {
+  const fontFileRel = toRelativeFfmpegPath(fontFile);
+  const emoji = emojiMetrics(fontSize);
+  const drawtexts = [];
+  const overlays = [];
+  let cursorX = x;
+
+  segments.forEach((seg, i) => {
+    if (seg.emoji) {
+      const file = emojiImages.get(seg.text);
+      if (!file) return;
+      overlays.push({
+        file,
+        size: emoji.size,
+        x: Math.round(cursorX),
+        y: Math.round(baselineY - emoji.size * (1 - EMOJI_BELOW_BASELINE_RATIO))
+      });
+      cursorX += emoji.advance;
+      return;
+    }
+    if (seg.text.trim()) {
+      const textFile = writeTextFile(TMP_DIR, `${filePrefix}_${i}.txt`, seg.text);
+      drawtexts.push(
+        `drawtext=textfile=${toRelativeFfmpegPath(textFile)}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontSize}:fontcolor=${color}:borderw=${borderw}:bordercolor=black:x=${Math.round(cursorX)}:y=${Math.round(baselineY)}:y_align=baseline`
+      );
+    }
+    cursorX += measureWidth(fontFile, seg.text, fontSize);
+  });
+
+  return { drawtexts, overlays };
+}
+
 // Der gerade laufende Clip wird (neben der groesseren Schrift) in seiner
 // Rangfarbe hervorgehoben: Gold/Silber/Bronze fuer Platz 1-3, ab Platz 4
 // Akzent-Rot. Nicht aktive Eintraege ab Platz 4 bleiben weiss.
@@ -159,36 +211,43 @@ function listLayout(count) {
 // Baut die permanente Rangliste: aufsteigend nach Rang sortiert (Platz 1
 // oben), jeder Clip zeigt seinen Titel, sobald er in der Abspielreihenfolge
 // an der Reihe war/ist ("aufgedeckt") -- beim letzten Clip ist die Liste
-// dadurch vollstaendig gefuellt. Titel koennen beliebigen Text enthalten
-// (Kommas, Doppelpunkte, Anfuehrungszeichen ...), daher ueber Textdateien,
-// nicht inline text=. expansion=none, weil drawtext sonst '%' im Text als
-// Beginn einer %{...}-Sequenz interpretiert ("Stray %" -> falscher Text).
-function buildListFilters(clip, allClips) {
+// dadurch vollstaendig gefuellt.
+function buildListLayers(clip, allClips, emojiImages) {
   const currentIndex = allClips.findIndex((c) => c.id === clip.id);
   const sortedByRank = [...allClips].sort((a, b) => a.rank - b.rank);
-  const fontFileRel = toRelativeFfmpegPath(LIST_FONT_ABS);
   const layout = listLayout(allClips.length);
+  const drawtexts = [];
+  const overlays = [];
 
-  return sortedByRank.map((listClip, displayIndex) => {
+  sortedByRank.forEach((listClip, displayIndex) => {
     const originalIndex = allClips.findIndex((c) => c.id === listClip.id);
     const isCurrent = listClip.id === clip.id;
     const revealed = originalIndex <= currentIndex;
 
     let label = `${listClip.rank}.`;
     if (revealed) {
-      const clean = stripEmoji((listClip.title || '').trim());
-      if (clean) label += ` ${truncate(clean, LIST_LABEL_MAX_CHARS)}`;
+      const title = (listClip.title || '').replace(/\s+/g, ' ').trim();
+      if (title) label += ` ${truncate(title, LIST_LABEL_MAX_CHARS)}`;
     }
 
-    const labelFile = writeTextFile(TMP_DIR, `${clip.id}_list${displayIndex}.txt`, label);
-    const labelFileRel = toRelativeFfmpegPath(labelFile);
-
-    const fontsize = isCurrent ? layout.fontsizeActive : layout.fontsize;
-    const fontcolor = listEntryColor(listClip.rank, isCurrent);
-    const y = LIST_TOP_Y + displayIndex * layout.spacing;
-
-    return `drawtext=textfile=${labelFileRel}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontsize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${LIST_X}:y=${y}`;
+    const fontSize = isCurrent ? layout.fontsizeActive : layout.fontsize;
+    const topY = LIST_TOP_Y + displayIndex * layout.spacing;
+    const layers = layoutSegments({
+      segments: segmentText(label),
+      fontFile: LIST_FONT_ABS,
+      fontSize,
+      color: listEntryColor(listClip.rank, isCurrent),
+      x: LIST_X,
+      baselineY: topY + capHeight(LIST_FONT_ABS, fontSize),
+      emojiImages,
+      filePrefix: `${clip.id}_list${displayIndex}`,
+      borderw: 4
+    });
+    drawtexts.push(...layers.drawtexts);
+    overlays.push(...layers.overlays);
   });
+
+  return { drawtexts, overlays };
 }
 
 // Baut den Gesamttitel: jedes Wort ein eigener drawtext-Filter (gleiche
@@ -200,87 +259,93 @@ function buildListFilters(clip, allClips) {
 // Zentrierung/Hintergrundbox aus. Wird einmal pro Render aufgerufen (der
 // Titel ist auf jedem Clip identisch) und das Ergebnis fuer alle Clips
 // wiederverwendet.
-function buildTitleFilters(settings) {
+function buildTitleLayers(settings, emojiImages) {
+  const empty = { drawtexts: [], overlays: [] };
   const rawTitle = (settings.title || '').trim();
-  if (!rawTitle) return [];
+  if (!rawTitle) return empty;
+
+  const fontFile = resolveTitleFont(settings.titleFont).file;
+  const wordColors = settings.titleWordColors || {};
 
   // Der Wortindex muss dem im Frontend entsprechen (Schluessel von
-  // titleWordColors) -- daher erst splitten, dann Emojis pro Wort entfernen
-  // und reine Emoji-"Woerter" auslassen, ohne die Indizes zu verschieben.
+  // titleWordColors); Woerter, von denen nichts darstellbar ist (z.B. ein
+  // Emoji ohne verfuegbares Bild), fallen weg, ohne die Indizes zu verschieben.
   const words = rawTitle
     .split(/\s+/)
     .filter(Boolean)
-    .map((word, index) => ({ text: stripEmoji(word), index }))
-    .filter((w) => w.text);
-  if (words.length === 0) return [];
-
-  const fontFile = resolveTitleFont(settings.titleFont).file;
-  const fontFileRel = toRelativeFfmpegPath(fontFile);
-  const wordColors = settings.titleWordColors || {};
+    .map((text, index) => ({ segments: segmentText(text), index }));
 
   let fontSize = Number(settings.titleFontSize) > 0 ? Number(settings.titleFontSize) : 62;
 
-  const measureTotal = (size) => {
+  const measureAll = (size) => {
+    const visible = words
+      .map((w) => ({ ...w, width: measureSegments(w.segments, fontFile, size, emojiImages) }))
+      .filter((w) => w.width > 0);
     const spaceW = measureWidth(fontFile, ' ', size);
-    const wordsW = words.reduce((sum, w) => sum + measureWidth(fontFile, w.text, size), 0);
-    return wordsW + spaceW * (words.length - 1);
+    const total = visible.reduce((sum, w) => sum + w.width, 0) + spaceW * Math.max(0, visible.length - 1);
+    return { visible, total, spaceW };
   };
 
-  let totalWidth = measureTotal(fontSize);
-  if (totalWidth > BANNER_MAX_WIDTH) {
-    const scale = BANNER_MAX_WIDTH / totalWidth;
-    fontSize = Math.max(BANNER_MIN_FONTSIZE, Math.floor(fontSize * scale));
-    totalWidth = measureTotal(fontSize);
+  let measured = measureAll(fontSize);
+  if (measured.visible.length === 0) return empty;
+  if (measured.total > BANNER_MAX_WIDTH) {
+    fontSize = Math.max(BANNER_MIN_FONTSIZE, Math.floor(fontSize * (BANNER_MAX_WIDTH / measured.total)));
+    measured = measureAll(fontSize);
   }
 
-  const spaceWidth = measureWidth(fontFile, ' ', fontSize);
-  const startX = Math.max(16, Math.round((CANVAS_WIDTH - totalWidth) / 2));
-
+  const startX = Math.max(16, Math.round((CANVAS_WIDTH - measured.total) / 2));
   const boxPaddingX = 24;
   const boxPaddingY = 18;
   const boxHeight = Math.round(fontSize * 1.25) + boxPaddingY * 2;
   const boxY = Math.max(0, BANNER_Y - boxPaddingY);
   const boxX = Math.max(0, Math.round(startX - boxPaddingX));
-  const boxWidth = Math.min(CANVAS_WIDTH, Math.round(totalWidth + boxPaddingX * 2));
+  const boxWidth = Math.min(CANVAS_WIDTH, Math.round(measured.total + boxPaddingX * 2));
 
-  const filters = [
+  const drawtexts = [
     `drawbox=x=${boxX}:y=${boxY}:w=${boxWidth}:h=${boxHeight}:color=black@0.55:t=fill`
   ];
+  const overlays = [];
+  const baselineY = BANNER_Y + capHeight(fontFile, fontSize);
 
   let cursorX = startX;
-  for (const word of words) {
-    const wordFile = writeTextFile(TMP_DIR, `banner_word_${word.index}.txt`, word.text);
-    const wordFileRel = toRelativeFfmpegPath(wordFile);
+  for (const word of measured.visible) {
     const colorHex = wordColors[String(word.index)];
-    const fontcolor = colorHex ? toFfmpegColor(colorHex) : BANNER_DEFAULT_COLOR;
-
-    filters.push(
-      `drawtext=textfile=${wordFileRel}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontSize}:fontcolor=${fontcolor}:borderw=4:bordercolor=black:x=${Math.round(cursorX)}:y=${BANNER_Y}`
-    );
-
-    cursorX += measureWidth(fontFile, word.text, fontSize) + spaceWidth;
+    const layers = layoutSegments({
+      segments: word.segments,
+      fontFile,
+      fontSize,
+      color: colorHex ? toFfmpegColor(colorHex) : BANNER_DEFAULT_COLOR,
+      x: cursorX,
+      baselineY,
+      emojiImages,
+      filePrefix: `banner_word_${word.index}`,
+      borderw: 4
+    });
+    drawtexts.push(...layers.drawtexts);
+    overlays.push(...layers.overlays);
+    cursorX += word.width + measured.spaceW;
   }
 
-  return filters;
+  return { drawtexts, overlays };
 }
 
-async function renderSingleClip(clip, allClips, titleFilters) {
+async function renderSingleClip(clip, allClips, titleLayers, emojiImages) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 
   const inputPath = path.join(DATA_DIR, clip.filePath);
   const outputPath = path.join(TMP_DIR, `${clip.id}.mp4`);
+  const listLayers = buildListLayers(clip, allClips, emojiImages);
 
   // setsar/format: alle Zwischen-Clips muessen exakt dasselbe Format haben,
   // sonst scheitert bzw. verfaelscht der verlustfreie Concat in Pass 2
   // (z.B. bei Quellen mit nicht-quadratischen Pixeln oder 10-Bit/4:4:4).
-  const filters = [
+  const baseChain = [
     `scale=${CANVAS_WIDTH}:${CANVAS_HEIGHT}:force_original_aspect_ratio=decrease`,
     `pad=${CANVAS_WIDTH}:${CANVAS_HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
     'setsar=1',
-    ...titleFilters,
-    ...buildListFilters(clip, allClips),
-    'format=yuv420p'
-  ];
+    ...titleLayers.drawtexts,
+    ...listLayers.drawtexts
+  ].join(',');
 
   const trimStart = Number(clip.trimStart) > 0 ? Number(clip.trimStart) : 0;
   const trimEnd = clip.trimEnd !== null && clip.trimEnd !== undefined ? Number(clip.trimEnd) : null;
@@ -300,12 +365,25 @@ async function renderSingleClip(clip, allClips, titleFilters) {
     inputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
   }
 
+  // Jedes Emoji-Bild ist ein eigener Eingang, wird auf seine Groesse skaliert
+  // und per overlay aufgelegt (ein Einzelbild bleibt dabei ueber die ganze
+  // Clipdauer stehen -- overlay wiederholt standardmaessig das letzte Bild).
+  const overlays = [...titleLayers.overlays, ...listLayers.overlays];
+  const firstEmojiInput = hasAudio ? 1 : 2;
+  let graph = `[0:v]${baseChain}[v0]`;
+  overlays.forEach((o, i) => {
+    inputArgs.push('-i', o.file);
+    graph += `;[${firstEmojiInput + i}:v]scale=${o.size}:${o.size}[e${i}]`;
+    graph += `;[v${i}][e${i}]overlay=x=${o.x}:y=${o.y}[v${i + 1}]`;
+  });
+  graph += `;[v${overlays.length}]format=yuv420p[vout]`;
+
   await runFfmpeg([
     '-y',
     ...inputArgs,
-    '-map', '0:v:0',
+    '-filter_complex', graph,
+    '-map', '[vout]',
     '-map', hasAudio ? '0:a:0' : '1:a:0',
-    '-vf', filters.join(','),
     '-r', '30',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -364,14 +442,19 @@ function startRender(clipsWithRank, settings) {
       cleanupTmpDir();
       fs.mkdirSync(TMP_DIR, { recursive: true });
 
-      // Der Gesamttitel ist auf jedem Clip identisch -- Filter einmalig
-      // berechnen (inkl. Font-Metriken-Messung) und fuer alle Clips
-      // wiederverwenden statt N Mal neu zu bauen.
-      const titleFilters = buildTitleFilters(settings);
+      // Alle benoetigten Emoji-Bilder vorab besorgen (Cache oder Download).
+      const emojiImages = await resolveEmojiImages([
+        settings.title,
+        ...clipsWithRank.map((c) => c.title)
+      ]);
+
+      // Der Gesamttitel ist auf jedem Clip identisch -- einmalig berechnen
+      // (inkl. Font-Metriken-Messung) und fuer alle Clips wiederverwenden.
+      const titleLayers = buildTitleLayers(settings, emojiImages);
 
       const tmpFiles = [];
       for (const clip of clipsWithRank) {
-        const tmpFile = await renderSingleClip(clip, clipsWithRank, titleFilters);
+        const tmpFile = await renderSingleClip(clip, clipsWithRank, titleLayers, emojiImages);
         tmpFiles.push(tmpFile);
       }
       const outputFile = await concatClips(tmpFiles);

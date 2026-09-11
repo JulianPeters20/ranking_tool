@@ -1,16 +1,21 @@
 [
   {
-    "id": "808e6b94-579b-4e72-b3ac-3e6137c20b38",
-    "filePath": "output/final_1789109850561.mp4",
-    "thumbnailPath": "output/thumbnails/808e6b94-579b-4e72-b3ac-3e6137c20b38.jpg",
-    "createdAt": "2026-09-11T06:57:30.784Z",
-    "youtubeTitle": "test",
-    "youtubeDescription": "",
-    "tags": [],
+    "id": "194178bf-4ae6-4923-9079-4fe9d3e24784",
+    "filePath": "output/final_1789115731381.mp4",
+    "thumbnailPath": "output/thumbnails/194178bf-4ae6-4923-9079-4fe9d3e24784.jpg",
+    "createdAt": "2026-09-11T08:35:31.613Z",
+    "youtubeTitle": "Best Dachshund Costumes",
+    "youtubeDescription": "Ranking the Best Dachshund Costumes",
+    "tags": [
+      "viral",
+      "dachshund",
+      "wienerdog",
+      "shorts"
+    ],
     "madeForKids": false,
-    "scheduledAt": null,
-    "uploadStatus": "draft",
-    "youtubeVideoId": null,
+    "scheduledAt": "2026-09-11T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "bxXOyOL_VmQ",
     "error": null
   }
 ]

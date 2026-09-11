@@ -43,7 +43,7 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
    Wörter), nochmal anklicken erlaubt eine andere Farbe, der kleine "×" setzt
    es zurück auf Weiß. Schriftart und -größe gelten einheitlich für den
    gesamten Titel (eigene Dropdown-/Zahlen-Felder daneben). Emojis im
-   Gesamttitel werden im Video weggelassen.
+   Gesamttitel und in den Clip-Titeln erscheinen farbig im Video.
 4. Reihenfolge per Drag & Drop am Griff **⠿** festlegen — sie bestimmt die
    Abspielreihenfolge im Video. Standardmäßig bekommt der **oberste** Clip
    die höchste Platznummer, der **unterste** Clip ist **#1** (klassisches
@@ -214,9 +214,16 @@ Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
   damit die Liste in diesem Bereich bleibt. Ob ein Clip
   "aufgedeckt" ist (Titel sichtbar), wird über seinen Index in der
   Abspiel-Reihenfolge bestimmt (`Index <= aktueller Index`), nicht über seine
-  Platznummer — Titel-Text pro Listeneintrag wird auf 22 Zeichen gekürzt,
-  Emojis werden dabei entfernt (Emojis erscheinen aktuell gar nicht im
-  gerenderten Video, siehe unten).
+  Platznummer — Titel-Text pro Listeneintrag wird auf 22 Zeichen gekürzt
+  (ein Emoji zählt dabei als ein Zeichen).
+- **Farbige Emojis:** ffmpegs `drawtext` zeichnet Emoji-Glyphen nur einfarbig
+  in der Schriftfarbe (auch mit Segoe UI Emoji). Emojis werden daher als
+  Bilder (Google Noto Emoji, Apache-2.0) per `overlay` aufgelegt; Text läuft
+  mit `y_align=baseline`, sodass Text und Emoji auf derselben Grundlinie
+  stehen. Die PNGs (128 px) werden beim ersten Gebrauch einmalig von jsDelivr
+  geladen und in `data/emoji-cache/` gespeichert — danach geht es offline.
+  Ist ein Emoji nicht verfügbar (offline beim ersten Mal, unbekanntes Emoji),
+  wird es weggelassen.
 - Schriftart/-größe des Gesamttitels liegen in `data/settings.json`
   (`titleFont`, `titleFontSize`), Wortfarben in `titleWordColors`
   (Wortindex → Hexfarbe). 6 Schriftarten stehen lokal in `assets/fonts/`
@@ -248,7 +255,7 @@ Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
 
 Dies ist eine bewusst schlanke erste Version. Nicht enthalten (könnten bei
 Bedarf ergänzt werden): mehrere Projekte parallel, Accounts, Vorlagen/Themes,
-automatische Untertitel, Emoji-Anzeige im Video, Batch-Export, Trimmen per
+automatische Untertitel, Batch-Export, Trimmen per
 Zeitleisten-Scrubber (aktuell Vorschau-Video + Zahlen-Eingabe), automatischer
 Zeilenumbruch bei sehr langen Gesamttiteln, mehrzeilige Gesamttitel,
 Minuten-genaues Kalender-Raster, Upload zu mehreren YouTube-Kanälen,

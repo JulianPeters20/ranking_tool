@@ -47,4 +47,15 @@ function measureWidth(fontFilePath, text, fontSize) {
   }
 }
 
-module.exports = { measureWidth };
+// Hoehe der Grossbuchstaben in px. Text wird mit drawtext y_align=baseline
+// auf eine gemeinsame Grundlinie gesetzt (noetig, damit Textstuecke und
+// Emoji-Bilder buendig stehen); die Layout-Konstanten beschreiben aber die
+// Oberkante der Schrift -- Oberkante + Versalhoehe = Grundlinie.
+function capHeight(fontFilePath, fontSize) {
+  const font = loadFont(fontFilePath);
+  const os2 = font.tables.os2;
+  const units = os2 && os2.sCapHeight ? os2.sCapHeight : font.unitsPerEm * 0.72;
+  return (units / font.unitsPerEm) * fontSize;
+}
+
+module.exports = { measureWidth, capHeight };
