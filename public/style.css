@@ -490,3 +490,38 @@ input[type="range"] {
 
 /* Dateiauswahl sieht wie ein Button aus (das echte input ist versteckt) */
 label.button-link { cursor: pointer; }
+
+/* Startscreen-Abschnitt auf der Ranking-Seite */
+.intro-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.intro-section textarea,
+.intro-section input[type="text"] {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* :not([hidden]) ist noetig, weil "display: block" sonst das hidden-Attribut
+   aussticht (hoehere Spezifitaet als die Browser-Regel). */
+.intro-section audio:not([hidden]) {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 10px;
+  display: block;
+}
+
+.intro-section.is-disabled .title-style-row,
+.intro-section.is-disabled textarea,
+.intro-section.is-disabled .render-actions {
+  opacity: 0.5;
+}

@@ -569,6 +569,110 @@ function updateTitleStyle() {
 titleFontEl.addEventListener('change', updateTitleStyle);
 titleSizeEl.addEventListener('change', updateTitleStyle);
 
+// ---- Startscreen (optional, vor dem ersten Clip) ----
+const introEls = {
+  section: document.querySelector('.intro-section'),
+  enabled: document.getElementById('intro-enabled'),
+  duration: document.getElementById('intro-duration'),
+  profile: document.getElementById('intro-voice-profile'),
+  language: document.getElementById('intro-voice-language'),
+  text: document.getElementById('intro-voice-text'),
+  generateBtn: document.getElementById('intro-voice-btn'),
+  removeBtn: document.getElementById('intro-voice-remove'),
+  status: document.getElementById('intro-status'),
+  error: document.getElementById('intro-error'),
+  audio: document.getElementById('intro-voice-audio')
+};
+
+let intro = { enabled: false, duration: 2, voice: null };
+let voiceboxState = { available: false, profiles: [] };
+
+// Die tatsaechliche Laenge richtet sich nach der Sprachaufnahme, mindestens
+// aber nach der eingestellten Dauer (gleiche Rechnung wie im Renderer).
+function introLength() {
+  const voiceLength = intro.voice && intro.voice.duration ? intro.voice.duration + 0.4 : 0;
+  return Math.max(2, Number(intro.duration) || 2, voiceLength);
+}
+
+function renderIntroSection() {
+  introEls.enabled.checked = !!intro.enabled;
+  introEls.duration.value = intro.duration ?? 2;
+  introEls.section.classList.toggle('is-disabled', !intro.enabled);
+
+  if (introEls.profile.dataset.count !== String(voiceboxState.profiles.length)) {
+    introEls.profile.innerHTML = '';
+    for (const profile of voiceboxState.profiles) {
+      const option = document.createElement('option');
+      option.value = profile.id;
+      option.textContent = profile.name;
+      introEls.profile.appendChild(option);
+    }
+    introEls.profile.dataset.count = String(voiceboxState.profiles.length);
+  }
+
+  if (intro.voice) {
+    if (!introEls.text.value) introEls.text.value = intro.voice.text || '';
+    if (intro.voice.profileId) introEls.profile.value = intro.voice.profileId;
+    if (intro.voice.language) introEls.language.value = intro.voice.language;
+    introEls.audio.src = `/${intro.voice.filePath}?v=${encodeURIComponent(intro.voice.createdAt || '')}`;
+  }
+  introEls.audio.hidden = !intro.voice;
+  introEls.removeBtn.hidden = !intro.voice;
+
+  const canGenerate = voiceboxState.available && voiceboxState.profiles.length > 0;
+  introEls.generateBtn.disabled = !canGenerate;
+  introEls.status.textContent = canGenerate
+    ? `Startscreen-Länge: ${introLength().toFixed(1)} s${intro.voice ? ' (richtet sich nach der Stimme)' : ''}`
+    : (voiceboxState.hint || 'Voicebox läuft, hat aber noch kein Stimmprofil – lege eins unter http://localhost:5173 an.');
+}
+
+async function loadIntro() {
+  const data = await fetchJson('/api/intro');
+  intro = data.intro || intro;
+  voiceboxState = data.voicebox || voiceboxState;
+  renderIntroSection();
+}
+
+introEls.enabled.addEventListener('change', async () => {
+  intro.enabled = introEls.enabled.checked;
+  renderIntroSection();
+  await sendJson('/api/settings', 'PUT', { intro: { enabled: intro.enabled } });
+});
+
+introEls.duration.addEventListener('change', async () => {
+  intro.duration = Number(introEls.duration.value) || 2;
+  renderIntroSection();
+  await sendJson('/api/settings', 'PUT', { intro: { duration: intro.duration } });
+});
+
+introEls.generateBtn.addEventListener('click', async () => {
+  const text = introEls.text.value.trim();
+  if (!text) {
+    introEls.error.textContent = 'Bitte einen Text eingeben.';
+    return;
+  }
+  introEls.error.textContent = '';
+  introEls.generateBtn.disabled = true;
+  introEls.status.textContent = 'Stimme wird erzeugt … (beim ersten Mal lädt Voicebox das Modell, das dauert einige Minuten)';
+  try {
+    intro = await sendJson('/api/intro/voice', 'POST', {
+      text,
+      profileId: introEls.profile.value,
+      language: introEls.language.value
+    });
+  } catch (err) {
+    introEls.error.textContent = err.message;
+  } finally {
+    introEls.generateBtn.disabled = false;
+    renderIntroSection();
+  }
+});
+
+introEls.removeBtn.addEventListener('click', async () => {
+  intro = await fetchJson('/api/intro/voice', { method: 'DELETE' });
+  renderIntroSection();
+});
+
 async function loadFonts() {
   const fonts = await fetchJson('/api/fonts');
   titleFontEl.innerHTML = '';
@@ -601,6 +705,7 @@ async function resumeRenderStatus() {
 async function init() {
   await loadFonts();
   await loadSettings();
+  await loadIntro();
   await loadClips();
   await resumeRenderStatus();
 }

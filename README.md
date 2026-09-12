@@ -129,6 +129,21 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
    Schriftart/-größe und bereits gerenderte Videos im Planer bleiben
    erhalten. Während eines Renders ist das Zurücksetzen gesperrt.
 
+### Startscreen (optional)
+
+Auf der Ranking-Seite lässt sich ein **Startscreen** vor den ersten Clip
+schalten: Der Gesamttitel erscheint groß und mittig über dem
+weichgezeichneten ersten Clip, danach läuft direkt Clip 1.
+
+- **Ein/Aus** per Häkchen, **Mindestdauer** einstellbar (1–10 s, Standard 2 s).
+- Optional liest deine **Voicebox-Stimme** einen Text vor. Dann richtet sich die
+  Länge automatisch nach der Aufnahme (Aufnahme + 0,4 s, mindestens die
+  eingestellte Dauer), und der Startscreen wird automatisch aktiviert.
+- Ohne Stimme bekommt der Startscreen eine stille Tonspur — nötig, damit das
+  verlustfreie Zusammenhängen mit den Clips funktioniert.
+- Der Titel wird automatisch umbrochen und verkleinert, wenn er sonst zu breit
+  oder zu hoch würde; Wortfarben und Emojis gelten wie in der Kopfzeile.
+
 ## Schnitt — freier Zusammenschnitt (`/edit.html`)
 
 Für Videos **ohne** Ranking-Overlay: beliebige Clips aneinanderhängen, trimmen,

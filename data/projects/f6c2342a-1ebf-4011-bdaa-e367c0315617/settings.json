@@ -5,5 +5,10 @@
   "titleWordColors": {
     "2": "#fff700",
     "3": "#f50000"
+  },
+  "intro": {
+    "enabled": false,
+    "duration": 2,
+    "voice": null
   }
 }

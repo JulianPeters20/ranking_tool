@@ -337,6 +337,162 @@ function buildTitleLayers(settings, emojiImages) {
   return { drawtexts, overlays };
 }
 
+// ---------------------------------------------------------- Startscreen
+// Optionaler Vorspann: Gesamttitel gross und mittig ueber dem
+// weichgezeichneten ersten Clip, wahlweise mit vorgelesenem Text. Laenge =
+// max(eingestellte Dauer, Laenge der Sprachaufnahme).
+const INTRO_MAX_WIDTH = 920;
+const INTRO_FONTSIZE = 130;
+const INTRO_MIN_FONTSIZE = 48;
+const INTRO_LINE_HEIGHT_RATIO = 1.2;
+const INTRO_MIN_DURATION = 2;
+const INTRO_BLUR_SIGMA = 30;
+const INTRO_VOICE_PADDING = 0.4;
+
+function introDuration(settings) {
+  const configured = Number(settings.intro && settings.intro.duration) || INTRO_MIN_DURATION;
+  const voice = settings.intro && settings.intro.voice;
+  const voiceDuration = voice && Number(voice.duration) > 0 ? Number(voice.duration) + INTRO_VOICE_PADDING : 0;
+  return Math.max(INTRO_MIN_DURATION, configured, voiceDuration);
+}
+
+// Bricht den Titel in Zeilen um, die in INTRO_MAX_WIDTH passen, und
+// verkleinert die Schrift, falls der Block zu hoch wird.
+function layoutIntroTitle(settings, emojiImages) {
+  const fontFile = resolveTitleFont(settings.titleFont).file;
+  const words = (settings.title || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((text, index) => ({ segments: segmentText(text), index }));
+  if (words.length === 0) return null;
+
+  let fontSize = INTRO_FONTSIZE;
+  let lines = [];
+  while (fontSize >= INTRO_MIN_FONTSIZE) {
+    const spaceWidth = measureWidth(fontFile, ' ', fontSize);
+    lines = [];
+    let current = { words: [], width: 0 };
+    for (const word of words) {
+      const width = measureSegments(word.segments, fontFile, fontSize, emojiImages);
+      if (width === 0) continue;
+      const next = current.words.length ? current.width + spaceWidth + width : width;
+      if (current.words.length && next > INTRO_MAX_WIDTH) {
+        lines.push(current);
+        current = { words: [{ ...word, width }], width };
+      } else {
+        current.words.push({ ...word, width });
+        current.width = next;
+      }
+    }
+    if (current.words.length) lines.push(current);
+
+    const blockHeight = lines.length * fontSize * INTRO_LINE_HEIGHT_RATIO;
+    const tooWide = lines.some((line) => line.width > INTRO_MAX_WIDTH);
+    if (!tooWide && blockHeight <= CANVAS_HEIGHT * 0.5) break;
+    fontSize -= 10;
+  }
+  if (lines.length === 0) return null;
+
+  return { fontFile, fontSize, lines, spaceWidth: measureWidth(fontFile, ' ', fontSize) };
+}
+
+function buildIntroLayers(settings, emojiImages) {
+  const layout = layoutIntroTitle(settings, emojiImages);
+  if (!layout) return { drawtexts: [], overlays: [] };
+
+  const { fontFile, fontSize, lines, spaceWidth } = layout;
+  const wordColors = settings.titleWordColors || {};
+  const lineHeight = Math.round(fontSize * INTRO_LINE_HEIGHT_RATIO);
+  const blockTop = Math.round(CANVAS_HEIGHT / 2 - (lines.length * lineHeight) / 2);
+  const drawtexts = [];
+  const overlays = [];
+
+  lines.forEach((line, lineIndex) => {
+    let cursorX = (CANVAS_WIDTH - line.width) / 2;
+    const baselineY = blockTop + lineIndex * lineHeight + capHeight(fontFile, fontSize);
+    for (const word of line.words) {
+      const colorHex = wordColors[String(word.index)];
+      const layers = layoutSegments({
+        segments: word.segments,
+        fontFile,
+        fontSize,
+        color: colorHex ? toFfmpegColor(colorHex) : BANNER_DEFAULT_COLOR,
+        x: cursorX,
+        baselineY,
+        emojiImages,
+        filePrefix: `intro_${lineIndex}_${word.index}`,
+        borderw: 8
+      });
+      drawtexts.push(...layers.drawtexts);
+      overlays.push(...layers.overlays);
+      cursorX += word.width + spaceWidth;
+    }
+  });
+
+  return { drawtexts, overlays };
+}
+
+// Der Vorspann nutzt den ersten Clip als Hintergrund: formatfuellend
+// zugeschnitten, weichgezeichnet und leicht abgedunkelt.
+async function renderIntro(firstClip, settings, emojiImages) {
+  const duration = introDuration(settings);
+  const outputPath = path.join(tmpDir, 'intro.mp4');
+  const inputPath = path.join(projectDir, firstClip.filePath);
+  const voice = settings.intro && settings.intro.voice;
+  const voicePath = voice && voice.filePath ? path.join(projectDir, voice.filePath) : null;
+
+  const layers = buildIntroLayers(settings, emojiImages);
+  const baseChain = [
+    `scale=${CANVAS_WIDTH}:${CANVAS_HEIGHT}:force_original_aspect_ratio=increase`,
+    `crop=${CANVAS_WIDTH}:${CANVAS_HEIGHT}`,
+    'setsar=1',
+    `gblur=sigma=${INTRO_BLUR_SIGMA}`,
+    'eq=brightness=-0.12:saturation=1.1',
+    // Ist der Clip kuerzer als der Vorspann, wird das letzte Bild
+    // eingefroren statt vorzeitig zu enden.
+    `tpad=stop_mode=clone:stop_duration=${Math.ceil(duration) + 1}`,
+    ...layers.drawtexts
+  ].join(',');
+
+  const inputArgs = [];
+  if (Number(firstClip.trimStart) > 0) inputArgs.push('-ss', String(firstClip.trimStart));
+  inputArgs.push('-i', inputPath);
+  // Ton: entweder die vorgelesene Stimme oder Stille -- in jedem Fall eine
+  // Tonspur, sonst scheitert der verlustfreie Concat mit den Clips.
+  if (voicePath && fs.existsSync(voicePath)) {
+    inputArgs.push('-i', voicePath);
+  } else {
+    inputArgs.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100');
+  }
+
+  const firstEmojiInput = 2;
+  let graph = `[0:v]${baseChain}[v0]`;
+  layers.overlays.forEach((overlay, i) => {
+    inputArgs.push('-i', overlay.file);
+    graph += `;[${firstEmojiInput + i}:v]scale=${overlay.size}:${overlay.size}[e${i}]`;
+    graph += `;[v${i}][e${i}]overlay=x=${overlay.x}:y=${overlay.y}[v${i + 1}]`;
+  });
+  graph += `;[v${layers.overlays.length}]format=yuv420p[vout]`;
+  // apad fuellt kuerzere Sprachaufnahmen mit Stille bis zum Ende des Vorspanns.
+  graph += `;[1:a]volume=${Number((voice && voice.volume) ?? 1)},apad[aout]`;
+
+  await runFfmpeg([
+    '-y',
+    ...inputArgs,
+    '-filter_complex', graph,
+    '-map', '[vout]',
+    '-map', '[aout]',
+    '-t', String(duration),
+    '-r', '30',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+    '-c:a', 'aac', '-ar', '44100', '-ac', '2',
+    outputPath
+  ]);
+
+  return outputPath;
+}
+
 async function renderSingleClip(clip, allClips, titleLayers, emojiImages) {
   fs.mkdirSync(tmpDir, { recursive: true });
 
@@ -463,6 +619,10 @@ function startRender(clipsWithRank, settings, projectId) {
       const titleLayers = buildTitleLayers(settings, emojiImages);
 
       const tmpFiles = [];
+      // Optionaler Startscreen vor dem ersten Clip.
+      if (settings.intro && settings.intro.enabled) {
+        tmpFiles.push(await renderIntro(clipsWithRank[0], settings, emojiImages));
+      }
       for (const clip of clipsWithRank) {
         const tmpFile = await renderSingleClip(clip, clipsWithRank, titleLayers, emojiImages);
         tmpFiles.push(tmpFile);

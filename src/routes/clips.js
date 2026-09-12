@@ -1,6 +1,10 @@
 const express = require('express');
 const crypto = require('crypto');
-const { loadClips, saveClips, loadSettings, saveSettings, getActiveProjectId } = require('../services/state');
+const fs = require('fs');
+const path = require('path');
+const { loadClips, saveClips, loadSettings, saveSettings, getActiveProjectId, getProjectDir } = require('../services/state');
+const { probeDuration } = require('../services/ffmpeg');
+const voicebox = require('../services/voicebox');
 const { fetchMetadata, downloadClip, removeClipFiles, removeDownloadedFiles } = require('../services/downloader');
 const { startRender, getRenderStatus } = require('../services/renderer');
 const { listTitleFonts, TITLE_FONTS } = require('../services/fonts');
@@ -211,8 +215,62 @@ router.get('/settings', (req, res) => {
   res.json(loadSettings());
 });
 
+// Startscreen: Ein/Aus, Mindestdauer und die vorgelesene Sprachspur.
+// Die tatsaechliche Laenge ist max(Dauer, Laenge der Sprachaufnahme).
+router.get('/intro', async (req, res) => {
+  const settings = loadSettings();
+  res.json({ intro: settings.intro || { enabled: false, duration: 2, voice: null }, voicebox: await voicebox.getStatus() });
+});
+
+router.post('/intro/voice', async (req, res) => {
+  const { text, profileId, language } = req.body || {};
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'Bitte einen Text eingeben, der vorgelesen werden soll.' });
+  }
+  if (typeof profileId !== 'string' || !profileId) {
+    return res.status(400).json({ error: 'Bitte ein Stimmprofil auswählen (in Voicebox anlegen).' });
+  }
+
+  const projectId = getActiveProjectId();
+  const targetPath = path.join(getProjectDir(projectId), 'intro', 'voice.wav');
+  try {
+    await voicebox.generateSpeech({ text: text.trim(), profileId, language: language || 'en' }, targetPath);
+  } catch (err) {
+    return res.status(502).json({ error: String(err.message || err) });
+  }
+
+  const settings = loadSettings(projectId);
+  settings.intro = {
+    ...(settings.intro || { enabled: false, duration: 2 }),
+    // Mit Stimme ergibt der Startscreen ohne Ton wenig Sinn -> gleich aktivieren.
+    enabled: true,
+    voice: {
+      text: text.trim(),
+      profileId,
+      language: language || 'en',
+      filePath: 'intro/voice.wav',
+      volume: (settings.intro && settings.intro.voice && settings.intro.voice.volume) || 1,
+      duration: await probeDuration(targetPath),
+      createdAt: new Date().toISOString()
+    }
+  };
+  saveSettings(settings, projectId);
+  res.status(201).json(settings.intro);
+});
+
+router.delete('/intro/voice', (req, res) => {
+  const projectId = getActiveProjectId();
+  const settings = loadSettings(projectId);
+  if (settings.intro && settings.intro.voice && settings.intro.voice.filePath) {
+    fs.rmSync(path.join(getProjectDir(projectId), settings.intro.voice.filePath), { force: true });
+  }
+  settings.intro = { ...(settings.intro || { enabled: false, duration: 2 }), voice: null };
+  saveSettings(settings, projectId);
+  res.json(settings.intro);
+});
+
 router.put('/settings', (req, res) => {
-  const { title, titleFont, titleFontSize, titleWordColors } = req.body || {};
+  const { title, titleFont, titleFontSize, titleWordColors, intro } = req.body || {};
   const settings = loadSettings();
   if (typeof title === 'string') {
     settings.title = title;
@@ -231,6 +289,20 @@ router.put('/settings', (req, res) => {
       }
     }
     settings.titleWordColors = clean;
+  }
+  if (intro && typeof intro === 'object') {
+    const current = settings.intro || { enabled: false, duration: 2, voice: null };
+    settings.intro = {
+      ...current,
+      enabled: typeof intro.enabled === 'boolean' ? intro.enabled : current.enabled,
+      duration: typeof intro.duration === 'number' && Number.isFinite(intro.duration)
+        ? Math.min(10, Math.max(1, intro.duration))
+        : current.duration,
+      voice: current.voice
+    };
+    if (typeof intro.voiceVolume === 'number' && settings.intro.voice) {
+      settings.intro.voice = { ...settings.intro.voice, volume: Math.min(2, Math.max(0, intro.voiceVolume)) };
+    }
   }
   saveSettings(settings);
   res.json(settings);

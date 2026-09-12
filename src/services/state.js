@@ -26,7 +26,10 @@ const DEFAULT_SETTINGS = {
   // bleiben weiss.
   titleFont: 'arial',
   titleFontSize: 62,
-  titleWordColors: {}
+  titleWordColors: {},
+  // Optionaler Startscreen vor dem ersten Clip: Titel gross und mittig ueber
+  // dem weichgezeichneten ersten Clip, wahlweise mit vorgelesenem Text.
+  intro: { enabled: false, duration: 2, voice: null }
 };
 
 // Erst in eine Temp-Datei schreiben, dann umbenennen: Ein Absturz mitten im
