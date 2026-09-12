@@ -1,6 +1,7 @@
 const express = require('express');
 const { loadVideos, saveVideos, removeVideo } = require('../services/videoLibrary');
 const { attemptUpload } = require('../services/uploadScheduler');
+const { getActiveProjectId } = require('../services/state');
 
 const router = express.Router();
 
@@ -86,8 +87,9 @@ router.put('/videos/:id/schedule', (req, res) => {
   saveVideos(videos);
   res.json(videos[idx]);
 
-  // Laeuft im Hintergrund weiter, Frontend pollt GET /api/videos.
-  attemptUpload(req.params.id);
+  // Laeuft im Hintergrund weiter, Frontend pollt GET /api/videos. Das Projekt
+  // wird mitgegeben, damit ein Projektwechsel den laufenden Upload nicht trifft.
+  attemptUpload(req.params.id, getActiveProjectId());
 });
 
 router.put('/videos/:id/unschedule', (req, res) => {

@@ -1,16 +1,20 @@
 // Kapselt yt-dlp: Metadaten abrufen + Video/Thumbnail herunterladen.
 // Ruft die per "npm run setup" heruntergeladene Binary direkt auf (gleiches
 // Muster wie ffmpeg in renderer.js) -- kein zusaetzlicher npm-Wrapper.
+// Clips liegen pro Projekt unter data/projects/<id>/clips/.
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { DATA_DIR } = require('./state');
+const { getProjectDir } = require('./state');
 
 const BIN_PATH = path.join(
   __dirname, '..', '..', 'bin',
   process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
 );
-const CLIPS_DIR = path.join(DATA_DIR, 'clips');
+
+function clipsDir(projectId) {
+  return path.join(getProjectDir(projectId), 'clips');
+}
 
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
@@ -41,9 +45,10 @@ async function fetchMetadata(url) {
   };
 }
 
-async function downloadClip(id, url) {
-  fs.mkdirSync(CLIPS_DIR, { recursive: true });
-  const outputTemplate = path.join(CLIPS_DIR, `${id}.%(ext)s`);
+async function downloadClip(id, url, projectId) {
+  const dir = clipsDir(projectId);
+  fs.mkdirSync(dir, { recursive: true });
+  const outputTemplate = path.join(dir, `${id}.%(ext)s`);
 
   await runYtDlp([
     '-f', 'bv*+ba/b',
@@ -57,25 +62,26 @@ async function downloadClip(id, url) {
     url
   ]);
 
-  const videoPath = path.join(CLIPS_DIR, `${id}.mp4`);
-  const thumbnailPath = path.join(CLIPS_DIR, `${id}.jpg`);
+  const videoPath = path.join(dir, `${id}.mp4`);
+  const thumbnailPath = path.join(dir, `${id}.jpg`);
 
   if (!fs.existsSync(videoPath)) {
     throw new Error('Download abgeschlossen, aber keine mp4-Datei gefunden.');
   }
 
+  const projectDir = getProjectDir(projectId);
   return {
-    filePath: path.relative(DATA_DIR, videoPath).split(path.sep).join('/'),
+    filePath: path.relative(projectDir, videoPath).split(path.sep).join('/'),
     thumbnailPath: fs.existsSync(thumbnailPath)
-      ? path.relative(DATA_DIR, thumbnailPath).split(path.sep).join('/')
+      ? path.relative(projectDir, thumbnailPath).split(path.sep).join('/')
       : null
   };
 }
 
-function removeClipFiles(clip) {
+function removeClipFiles(clip, projectId) {
   for (const rel of [clip.filePath, clip.thumbnailPath]) {
     if (!rel) continue;
-    const abs = path.join(DATA_DIR, rel);
+    const abs = path.join(getProjectDir(projectId), rel);
     if (fs.existsSync(abs)) {
       fs.unlinkSync(abs);
     }
@@ -85,11 +91,12 @@ function removeClipFiles(clip) {
 // Entfernt alles, was yt-dlp fuer diese Clip-ID angelegt hat (auch
 // .part-/Zwischendateien) -- fuer abgebrochene Downloads und Clips, die
 // waehrend des Downloads geloescht wurden.
-function removeDownloadedFiles(id) {
-  if (!fs.existsSync(CLIPS_DIR)) return;
-  for (const name of fs.readdirSync(CLIPS_DIR)) {
+function removeDownloadedFiles(id, projectId) {
+  const dir = clipsDir(projectId);
+  if (!fs.existsSync(dir)) return;
+  for (const name of fs.readdirSync(dir)) {
     if (name.startsWith(`${id}.`)) {
-      fs.rmSync(path.join(CLIPS_DIR, name), { force: true });
+      fs.rmSync(path.join(dir, name), { force: true });
     }
   }
 }

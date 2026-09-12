@@ -14,6 +14,13 @@
       <a href="/index.html" class="app-nav-link is-active" aria-current="page">Ranking erstellen</a>
       <a href="/schedule.html" class="app-nav-link">YouTube Planer</a>
     </nav>
+    <div class="project-bar">
+      <label for="project-select">Projekt</label>
+      <select id="project-select" title="Jedes Projekt hat eigene Clips, Einstellungen, Videos und einen eigenen YouTube-Kanal"></select>
+      <button id="project-new-btn" type="button" class="button-secondary">Neu</button>
+      <button id="project-rename-btn" type="button" class="button-secondary">Umbenennen</button>
+      <button id="project-delete-btn" type="button" class="button-secondary">Löschen</button>
+    </div>
   </header>
 
   <main>
@@ -65,6 +72,7 @@
     </section>
   </main>
 
+  <script src="projects.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

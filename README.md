@@ -25,6 +25,36 @@ npm start
 
 Dann im Browser öffnen: http://localhost:3000
 
+### Mehrere Projekte (ein Projekt = ein Kanal)
+
+Oben auf beiden Seiten steht eine **Projektauswahl**. Jedes Projekt hat eigene
+Clips, eigene Titel-Einstellungen, eine eigene Videobibliothek **und einen
+eigenen YouTube-Kanal** — so kann nichts versehentlich auf dem falschen Kanal
+landen. Gemeinsam bleiben nur die App-Zugangsdaten (Client-ID/Secret) und der
+Emoji-Zwischenspeicher.
+
+```
+data/projects.json            Liste der Projekte + aktives Projekt
+data/projects/<id>/           project.json, settings.json, videos.json,
+                              youtube_token.json, clips/, output/
+data/youtube_credentials.json App-Zugangsdaten (für alle Projekte)
+data/emoji-cache/             Emoji-Bilder (für alle Projekte)
+```
+
+- **Neu** legt ein Projekt an und aktiviert es sofort.
+- **Umbenennen** / **Löschen** beziehen sich auf das aktive Projekt; das letzte
+  Projekt lässt sich nicht löschen. Löschen entfernt Clips, fertige Videos und
+  die YouTube-Verbindung dieses Projekts endgültig.
+- Für einen neuen Kanal: Projekt anlegen, in den **YouTube Planer** wechseln und
+  dort einmal **"Mit YouTube verbinden"** klicken — dabei im Google-Dialog den
+  zum Projekt gehörenden Kanal auswählen.
+- Geplante Uploads laufen projektübergreifend weiter: Der Retry beim Start und
+  alle 5 Minuten prüft alle Projekte, egal welches gerade geöffnet ist.
+- Während eines Renders sind Projektwechsel und Löschen gesperrt.
+
+Beim ersten Start nach dem Umbau werden vorhandene Daten automatisch in ein
+Projekt namens "Ranking Clips" verschoben.
+
 ### Starten und Stoppen per Skript
 
 Statt `npm start` in einem offenen Terminal lassen sich das Ranking-Tool und

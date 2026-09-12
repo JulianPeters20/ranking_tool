@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
-const { DATA_DIR } = require('./src/services/state');
+const { getProjectDir } = require('./src/services/state');
+const projectsRouter = require('./src/routes/projects');
 const clipsRouter = require('./src/routes/clips');
 const videosRouter = require('./src/routes/videos');
 const youtubeRouter = require('./src/routes/youtube');
@@ -16,11 +17,18 @@ const HOST = process.env.HOST || '127.0.0.1';
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Thumbnails der heruntergeladenen Clips
-app.use('/clips', express.static(path.join(DATA_DIR, 'clips')));
-// Fertig gerenderte Videos (Vorschau/Download) + deren Thumbnails
-app.use('/output', express.static(path.join(DATA_DIR, 'output')));
+// Clips und fertige Videos liegen im Ordner des jeweils aktiven Projekts --
+// der Pfad wird deshalb pro Anfrage aufgeloest statt einmalig beim Start.
+function serveFromActiveProject(subdir) {
+  return (req, res, next) => express.static(path.join(getProjectDir(), subdir))(req, res, next);
+}
 
+// Thumbnails der heruntergeladenen Clips
+app.use('/clips', serveFromActiveProject('clips'));
+// Fertig gerenderte Videos (Vorschau/Download) + deren Thumbnails
+app.use('/output', serveFromActiveProject('output'));
+
+app.use('/api', projectsRouter);
 app.use('/api', clipsRouter);
 app.use('/api', videosRouter);
 app.use(youtubeRouter); // definiert eigene Pfade inkl. /auth/youtube/callback
@@ -32,9 +40,9 @@ app.listen(PORT, HOST, () => {
 
   // Von einem vorherigen Lauf haengengebliebene Uploads (App war zu,
   // abgestuerzt, kein Internet) beim Start erkennen und erneut versuchen,
-  // danach alle 5 Minuten weiter pruefen -- ohne dass der Rechner zum
-  // eigentlichen Veroeffentlichungszeitpunkt selbst laufen muss (das
-  // uebernimmt YouTubes eigenes status.publishAt).
+  // danach alle 5 Minuten weiter pruefen -- ueber alle Projekte hinweg und
+  // ohne dass der Rechner zum eigentlichen Veroeffentlichungszeitpunkt selbst
+  // laufen muss (das uebernimmt YouTubes eigenes status.publishAt).
   resetStaleUploads();
   retryPendingUploads();
   setInterval(retryPendingUploads, RETRY_INTERVAL_MS);

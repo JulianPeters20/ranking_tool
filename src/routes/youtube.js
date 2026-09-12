@@ -1,26 +1,29 @@
 const express = require('express');
 const youtubeService = require('../services/youtube');
+const { getActiveProjectId } = require('../services/state');
 
 // Dieser Router wird ungeprefixt auf App-Root gemountet, da /auth/youtube/callback
 // exakt der bei Google hinterlegten Redirect-URI entsprechen muss.
+// Der Kanal haengt am jeweils aktiven Projekt (ein Projekt = ein Kanal).
 const router = express.Router();
 
 router.get('/api/youtube/status', async (req, res) => {
+  const projectId = getActiveProjectId();
   const configured = youtubeService.isConfigured();
-  const connected = youtubeService.isConnected();
+  const connected = youtubeService.isConnected(projectId);
   let channelTitle = null;
   let error = null;
 
   if (connected) {
     try {
-      const channel = await youtubeService.getChannelInfo();
+      const channel = await youtubeService.getChannelInfo(projectId);
       channelTitle = channel ? channel.title : null;
     } catch (err) {
       error = String(err.message || err);
     }
   }
 
-  res.json({ configured, connected, channelTitle, error });
+  res.json({ configured, connected, channelTitle, error, projectId });
 });
 
 router.put('/api/youtube/credentials', (req, res) => {
@@ -33,13 +36,13 @@ router.put('/api/youtube/credentials', (req, res) => {
 });
 
 router.post('/api/youtube/disconnect', (req, res) => {
-  youtubeService.disconnect();
+  youtubeService.disconnect(getActiveProjectId());
   res.json({ ok: true });
 });
 
 router.get('/auth/youtube/start', (req, res) => {
   try {
-    const url = youtubeService.getAuthUrl();
+    const url = youtubeService.getAuthUrl(getActiveProjectId());
     res.redirect(url);
   } catch (err) {
     res.status(400).send(`Fehler: ${String(err.message || err)}. Bitte zuerst Client-ID/Secret auf der Planer-Seite eintragen.`);

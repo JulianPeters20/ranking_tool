@@ -1,22 +1,24 @@
 // Stoesst den eigentlichen YouTube-Upload an und faengt Unterbrechungen ab
 // (App war zu, kein Internet, Absturz waehrend eines Uploads) durch erneute
 // Versuche beim Serverstart und danach periodisch.
-const { loadVideos, saveVideos } = require('./videoLibrary');
+// Laeuft ueber ALLE Projekte -- ein geplanter Upload soll nicht davon
+// abhaengen, welches Projekt im Frontend gerade geoeffnet ist.
+const { loadVideos, saveVideos, listVideosOfAllProjects } = require('./videoLibrary');
 const youtubeService = require('./youtube');
-
-function updateVideo(id, patch) {
-  const videos = loadVideos();
-  const idx = videos.findIndex((v) => v.id === id);
-  if (idx === -1) return null;
-  videos[idx] = { ...videos[idx], ...patch };
-  saveVideos(videos);
-  return videos[idx];
-}
 
 const PAST_SCHEDULE_ERROR = 'Geplanter Zeitpunkt liegt inzwischen in der Vergangenheit (App war bis dahin aus?) – bitte im Kalender neu einplanen.';
 
-async function attemptUpload(id) {
-  const videos = loadVideos();
+function updateVideo(id, patch, projectId) {
+  const videos = loadVideos(projectId);
+  const idx = videos.findIndex((v) => v.id === id);
+  if (idx === -1) return null;
+  videos[idx] = { ...videos[idx], ...patch };
+  saveVideos(videos, projectId);
+  return videos[idx];
+}
+
+async function attemptUpload(id, projectId) {
+  const videos = loadVideos(projectId);
   const entry = videos.find((v) => v.id === id);
   if (!entry || !entry.scheduledAt) return;
   if (entry.uploadStatus === 'scheduled_on_youtube' || entry.uploadStatus === 'uploading') return;
@@ -26,17 +28,17 @@ async function attemptUpload(id) {
   // wiederholen. Stattdessen einmalig als Fehler markieren.
   if (new Date(entry.scheduledAt).getTime() <= Date.now()) {
     if (entry.error !== PAST_SCHEDULE_ERROR) {
-      updateVideo(id, { uploadStatus: 'error', error: PAST_SCHEDULE_ERROR });
+      updateVideo(id, { uploadStatus: 'error', error: PAST_SCHEDULE_ERROR }, projectId);
     }
     return;
   }
 
-  updateVideo(id, { uploadStatus: 'uploading', error: null });
+  updateVideo(id, { uploadStatus: 'uploading', error: null }, projectId);
   try {
-    const youtubeVideoId = await youtubeService.uploadVideo(entry);
-    updateVideo(id, { uploadStatus: 'scheduled_on_youtube', youtubeVideoId, error: null });
+    const youtubeVideoId = await youtubeService.uploadVideo(entry, projectId);
+    updateVideo(id, { uploadStatus: 'scheduled_on_youtube', youtubeVideoId, error: null }, projectId);
   } catch (err) {
-    updateVideo(id, { uploadStatus: 'error', error: String(err.message || err) });
+    updateVideo(id, { uploadStatus: 'error', error: String(err.message || err) }, projectId);
   }
 }
 
@@ -44,25 +46,26 @@ async function attemptUpload(id) {
 // geblieben ist, ist mit Sicherheit kein echter laufender Upload mehr --
 // zuruecksetzen, damit retryPendingUploads() ihn erneut aufgreift.
 function resetStaleUploads() {
-  const videos = loadVideos();
-  let changed = false;
-  for (const v of videos) {
-    if (v.uploadStatus === 'uploading') {
-      v.uploadStatus = 'error';
-      v.error = 'Unterbrochen (Server wurde neu gestartet) -- wird erneut versucht.';
-      changed = true;
+  const byProject = new Map();
+  for (const { projectId, video } of listVideosOfAllProjects()) {
+    if (video.uploadStatus !== 'uploading') continue;
+    if (!byProject.has(projectId)) byProject.set(projectId, loadVideos(projectId));
+    const videos = byProject.get(projectId);
+    const entry = videos.find((v) => v.id === video.id);
+    if (entry) {
+      entry.uploadStatus = 'error';
+      entry.error = 'Unterbrochen (Server wurde neu gestartet) -- wird erneut versucht.';
     }
   }
-  if (changed) saveVideos(videos);
+  for (const [projectId, videos] of byProject) saveVideos(videos, projectId);
 }
 
 async function retryPendingUploads() {
-  const videos = loadVideos();
-  const pending = videos.filter(
-    (v) => v.scheduledAt && v.uploadStatus !== 'scheduled_on_youtube' && v.uploadStatus !== 'uploading'
+  const pending = listVideosOfAllProjects().filter(({ video }) =>
+    video.scheduledAt && video.uploadStatus !== 'scheduled_on_youtube' && video.uploadStatus !== 'uploading'
   );
-  for (const entry of pending) {
-    await attemptUpload(entry.id);
+  for (const { projectId, video } of pending) {
+    await attemptUpload(video.id, projectId);
   }
 }
 

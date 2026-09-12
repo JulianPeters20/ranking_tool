@@ -1,5 +1,9 @@
-// OAuth-Verbindung zu YouTube (Client-ID/Secret + Tokens lokal gespeichert)
-// und Video-Upload ueber die YouTube Data API v3.
+// OAuth-Verbindung zu YouTube und Video-Upload ueber die YouTube Data API v3.
+//
+// Seit dem Mehrprojekt-Umbau gilt: Die App-Zugangsdaten (Client-ID/Secret)
+// sind fuer alle Projekte gleich und liegen in data/, das Token liegt pro
+// Projekt im Projektordner -- jedes Projekt ist damit an genau einen Kanal
+// gebunden und es kann nichts auf dem falschen Kanal landen.
 //
 // Wichtige Hintergrund-Infos (siehe README fuer die vollstaendige Anleitung):
 // - Das Google-Cloud-OAuth-Projekt muss auf Publishing-Status "In Production"
@@ -13,16 +17,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
-const { DATA_DIR } = require('./state');
+const { DATA_DIR, getProjectDir, getActiveProjectId } = require('./state');
 
 const CREDENTIALS_FILE = path.join(DATA_DIR, 'youtube_credentials.json');
-const TOKEN_FILE = path.join(DATA_DIR, 'youtube_token.json');
 const PORT = process.env.PORT || 3000;
 const REDIRECT_URI = `http://localhost:${PORT}/auth/youtube/callback`;
 const UPLOAD_SCOPE = 'https://www.googleapis.com/auth/youtube.upload';
 
-function ensureDataDir() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+function tokenFile(projectId) {
+  return path.join(getProjectDir(projectId), 'youtube_token.json');
 }
 
 function loadCredentials() {
@@ -35,49 +38,51 @@ function loadCredentials() {
 }
 
 function saveCredentials(clientId, clientSecret) {
-  ensureDataDir();
+  fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(CREDENTIALS_FILE, JSON.stringify({ clientId, clientSecret }, null, 2), 'utf-8');
 }
 
-function loadToken() {
-  if (!fs.existsSync(TOKEN_FILE)) return null;
+function loadToken(projectId) {
+  const file = tokenFile(projectId);
+  if (!fs.existsSync(file)) return null;
   try {
-    return JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf-8'));
+    return JSON.parse(fs.readFileSync(file, 'utf-8'));
   } catch {
     return null;
   }
 }
 
-function saveToken(tokens) {
-  ensureDataDir();
-  fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), 'utf-8');
+function saveToken(tokens, projectId) {
+  const file = tokenFile(projectId);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(tokens, null, 2), 'utf-8');
 }
 
-function disconnect() {
-  if (fs.existsSync(TOKEN_FILE)) fs.unlinkSync(TOKEN_FILE);
+function disconnect(projectId) {
+  const file = tokenFile(projectId);
+  if (fs.existsSync(file)) fs.unlinkSync(file);
 }
 
 function isConfigured() {
   return !!loadCredentials();
 }
 
-function isConnected() {
-  return !!loadCredentials() && !!loadToken();
+function isConnected(projectId) {
+  return !!loadCredentials() && !!loadToken(projectId);
 }
 
 // Neuer OAuth2Client pro Aufruf (verhindert Zustands-Leichen), persistiert
-// automatisch aufgefrischte Access-Tokens zurueck auf die Festplatte.
-function getOAuth2Client() {
+// automatisch aufgefrischte Access-Tokens zurueck ins richtige Projekt.
+function getOAuth2Client(projectId) {
   const creds = loadCredentials();
   if (!creds) throw new Error('YouTube-Zugangsdaten (Client-ID/Secret) sind noch nicht hinterlegt.');
 
   const client = new google.auth.OAuth2(creds.clientId, creds.clientSecret, REDIRECT_URI);
-  const token = loadToken();
+  const token = loadToken(projectId);
   if (token) client.setCredentials(token);
 
   client.on('tokens', (newTokens) => {
-    const merged = { ...(loadToken() || {}), ...newTokens };
-    saveToken(merged);
+    saveToken({ ...(loadToken(projectId) || {}), ...newTokens }, projectId);
   });
 
   return client;
@@ -86,33 +91,38 @@ function getOAuth2Client() {
 // Zufaelliger state-Wert pro Anmeldeversuch: Der Callback akzeptiert nur
 // Codes aus einem hier gestarteten Flow -- sonst koennte eine fremde Seite
 // per Link einen Code unterschieben und so einen fremden Kanal verbinden.
-let pendingOAuthState = null;
+// Im state steckt zusaetzlich das Projekt, zu dem der Kanal gehoeren soll.
+let pendingOAuth = null;
 
-function getAuthUrl() {
-  const client = getOAuth2Client();
-  pendingOAuthState = crypto.randomBytes(16).toString('hex');
+function getAuthUrl(projectId) {
+  const id = projectId || getActiveProjectId();
+  const client = getOAuth2Client(id);
+  pendingOAuth = { state: crypto.randomBytes(16).toString('hex'), projectId: id };
   return client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: [UPLOAD_SCOPE],
-    state: pendingOAuthState
+    state: pendingOAuth.state
   });
 }
 
 async function handleOAuthCallback(code, state) {
-  if (!pendingOAuthState || state !== pendingOAuthState) {
+  if (!pendingOAuth || state !== pendingOAuth.state) {
     throw new Error('Ungültige oder abgelaufene Anmeldeanfrage – bitte "Mit YouTube verbinden" erneut klicken.');
   }
-  pendingOAuthState = null;
+  const { projectId } = pendingOAuth;
+  pendingOAuth = null;
   if (!code) throw new Error('Kein Autorisierungscode von Google erhalten.');
-  const client = getOAuth2Client();
+
+  const client = getOAuth2Client(projectId);
   const { tokens } = await client.getToken(code);
-  saveToken(tokens);
+  saveToken(tokens, projectId);
+  return { projectId };
 }
 
-async function getChannelInfo() {
-  if (!isConnected()) return null;
-  const auth = getOAuth2Client();
+async function getChannelInfo(projectId) {
+  if (!isConnected(projectId)) return null;
+  const auth = getOAuth2Client(projectId);
   const youtube = google.youtube({ version: 'v3', auth });
   try {
     const res = await youtube.channels.list({ part: ['snippet'], mine: true });
@@ -131,10 +141,10 @@ async function getChannelInfo() {
 // Laedt die Videodatei hoch, privat + mit publishAt fuer die geplante Uhrzeit.
 // YouTube macht das Video dann selbststaendig zur richtigen Zeit oeffentlich
 // (siehe Hinweis oben zum Compliance-Audit).
-async function uploadVideo(entry) {
-  const auth = getOAuth2Client();
+async function uploadVideo(entry, projectId) {
+  const auth = getOAuth2Client(projectId);
   const youtube = google.youtube({ version: 'v3', auth });
-  const filePath = path.join(DATA_DIR, entry.filePath);
+  const filePath = path.join(getProjectDir(projectId), entry.filePath);
 
   const description = entry.youtubeDescription
     ? `${entry.youtubeDescription}\n\n#Shorts`

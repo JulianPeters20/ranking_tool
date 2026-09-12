@@ -16,14 +16,24 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { DATA_DIR } = require('./state');
+const { getProjectDir } = require('./state');
 const { resolveTitleFont, DEFAULT_TITLE_FONT_KEY } = require('./fonts');
 const { measureWidth, capHeight } = require('./textMeasure');
 const { graphemes, segmentText, resolveEmojiImages } = require('./emoji');
 
 const PROJECT_ROOT = path.join(__dirname, '..', '..');
-const OUTPUT_DIR = path.join(DATA_DIR, 'output');
-const TMP_DIR = path.join(OUTPUT_DIR, 'tmp');
+// Pfade des gerade gerenderten Projekts. Es laeuft immer nur ein Render
+// gleichzeitig (POST /api/render lehnt Parallelstarts ab), daher reichen
+// Modul-Variablen, die startRender() zu Beginn setzt.
+let projectDir = null;
+let outputDir = null;
+let tmpDir = null;
+
+function setProjectPaths(projectId) {
+  projectDir = getProjectDir(projectId);
+  outputDir = path.join(projectDir, 'output');
+  tmpDir = path.join(outputDir, 'tmp');
+}
 // Eigene, ins Projekt kopierte Schriftdateien (statt C:\Windows\Fonts\...):
 // ffmpegs drawtext-Optionsparser splittet Werte an ':' *nach* dem Wegfallen
 // der Quotes der obersten Filtergraph-Ebene -- ein Laufwerksbuchstabe wie
@@ -176,7 +186,7 @@ function layoutSegments({ segments, fontFile, fontSize, color, x, baselineY, emo
       return;
     }
     if (seg.text.trim()) {
-      const textFile = writeTextFile(TMP_DIR, `${filePrefix}_${i}.txt`, seg.text);
+      const textFile = writeTextFile(tmpDir, `${filePrefix}_${i}.txt`, seg.text);
       drawtexts.push(
         `drawtext=textfile=${toRelativeFfmpegPath(textFile)}:expansion=none:fontfile=${fontFileRel}:fontsize=${fontSize}:fontcolor=${color}:borderw=${borderw}:bordercolor=black:x=${Math.round(cursorX)}:y=${Math.round(baselineY)}:y_align=baseline`
       );
@@ -330,10 +340,10 @@ function buildTitleLayers(settings, emojiImages) {
 }
 
 async function renderSingleClip(clip, allClips, titleLayers, emojiImages) {
-  fs.mkdirSync(TMP_DIR, { recursive: true });
+  fs.mkdirSync(tmpDir, { recursive: true });
 
-  const inputPath = path.join(DATA_DIR, clip.filePath);
-  const outputPath = path.join(TMP_DIR, `${clip.id}.mp4`);
+  const inputPath = path.join(projectDir, clip.filePath);
+  const outputPath = path.join(tmpDir, `${clip.id}.mp4`);
   const listLayers = buildListLayers(clip, allClips, emojiImages);
 
   // setsar/format: alle Zwischen-Clips muessen exakt dasselbe Format haben,
@@ -399,15 +409,15 @@ async function renderSingleClip(clip, allClips, titleLayers, emojiImages) {
 }
 
 async function concatClips(tmpFiles) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  const listPath = path.join(TMP_DIR, 'concat_list.txt');
+  fs.mkdirSync(outputDir, { recursive: true });
+  const listPath = path.join(tmpDir, 'concat_list.txt');
   const listContent = tmpFiles
     .map((f) => `file '${toFfmpegPath(f)}'`)
     .join('\n');
   fs.writeFileSync(listPath, listContent, 'utf-8');
 
   const outputFile = `final_${Date.now()}.mp4`;
-  const outputPath = path.join(OUTPUT_DIR, outputFile);
+  const outputPath = path.join(outputDir, outputFile);
 
   await runFfmpeg([
     '-y',
@@ -427,20 +437,22 @@ async function concatClips(tmpFiles) {
 // sammeln sich pro Render zig MB in data/output/tmp an (und sind ueber die
 // statische /output-Route erreichbar).
 function cleanupTmpDir() {
+  if (!tmpDir) return; // vor dem ersten Render noch kein Projekt gesetzt
   try {
-    fs.rmSync(TMP_DIR, { recursive: true, force: true });
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   } catch {
     // Aufraeumen ist nicht kritisch -- beim naechsten Render erneut versucht.
   }
 }
 
-function startRender(clipsWithRank, settings) {
-  renderState = { status: 'running', outputFile: null, error: null };
+function startRender(clipsWithRank, settings, projectId) {
+  setProjectPaths(projectId);
+  renderState = { status: 'running', outputFile: null, error: null, projectId };
 
   (async () => {
     try {
       cleanupTmpDir();
-      fs.mkdirSync(TMP_DIR, { recursive: true });
+      fs.mkdirSync(tmpDir, { recursive: true });
 
       // Alle benoetigten Emoji-Bilder vorab besorgen (Cache oder Download).
       const emojiImages = await resolveEmojiImages([
@@ -463,7 +475,7 @@ function startRender(clipsWithRank, settings) {
       // Planer garantiert schon gelistet. Spaeter require'd (nicht am
       // Dateikopf), um einen Zirkelbezug zu vermeiden, falls videoLibrary.js
       // je etwas aus renderer.js braucht.
-      await require('./videoLibrary').registerRenderedVideo(outputFile).catch((err) => {
+      await require('./videoLibrary').registerRenderedVideo(outputFile, projectId).catch((err) => {
         console.error('Video konnte nicht in die Planer-Bibliothek aufgenommen werden:', err);
       });
       renderState = { status: 'done', outputFile, error: null };

@@ -1,34 +1,27 @@
 // Bibliothek fertig gerenderter Ranking-Videos, bereit zur Planung/zum
-// YouTube-Upload -- getrennt von data/project.json (das beschreibt nur den
-// gerade zusammengestellten Clip-Satz, nicht die Historie fertiger Videos).
+// YouTube-Upload -- pro Projekt (jeder Kanal hat seine eigene Bibliothek),
+// getrennt von project.json (das beschreibt nur den gerade zusammengestellten
+// Clip-Satz, nicht die Historie fertiger Videos).
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
-const { DATA_DIR, writeJsonAtomic } = require('./state');
+const { getProjectDir, writeJsonAtomic, readJson, listProjects } = require('./state');
 
-const VIDEOS_FILE = path.join(DATA_DIR, 'videos.json');
-const OUTPUT_DIR = path.join(DATA_DIR, 'output');
-const THUMBS_DIR = path.join(OUTPUT_DIR, 'thumbnails');
-
-function ensureFile() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(VIDEOS_FILE)) {
-    fs.writeFileSync(VIDEOS_FILE, '[]', 'utf-8');
-  }
+function videosFile(projectId) {
+  return path.join(getProjectDir(projectId), 'videos.json');
 }
 
-function loadVideos() {
-  ensureFile();
-  try {
-    return JSON.parse(fs.readFileSync(VIDEOS_FILE, 'utf-8'));
-  } catch {
-    return [];
-  }
+function outputDir(projectId) {
+  return path.join(getProjectDir(projectId), 'output');
 }
 
-function saveVideos(videos) {
-  writeJsonAtomic(VIDEOS_FILE, videos);
+function loadVideos(projectId) {
+  return readJson(videosFile(projectId), []);
+}
+
+function saveVideos(videos, projectId) {
+  writeJsonAtomic(videosFile(projectId), videos);
 }
 
 function extractThumbnail(videoAbsPath, outAbsPath) {
@@ -46,11 +39,12 @@ function extractThumbnail(videoAbsPath, outAbsPath) {
 }
 
 // Wird von renderer.js nach jedem erfolgreichen Render aufgerufen.
-async function registerRenderedVideo(outputFile) {
+async function registerRenderedVideo(outputFile, projectId) {
   const id = crypto.randomUUID();
-  const videoAbsPath = path.join(OUTPUT_DIR, outputFile);
-  fs.mkdirSync(THUMBS_DIR, { recursive: true });
-  const thumbAbsPath = path.join(THUMBS_DIR, `${id}.jpg`);
+  const videoAbsPath = path.join(outputDir(projectId), outputFile);
+  const thumbsDir = path.join(outputDir(projectId), 'thumbnails');
+  fs.mkdirSync(thumbsDir, { recursive: true });
+  const thumbAbsPath = path.join(thumbsDir, `${id}.jpg`);
   await extractThumbnail(videoAbsPath, thumbAbsPath);
 
   const entry = {
@@ -68,24 +62,34 @@ async function registerRenderedVideo(outputFile) {
     error: null
   };
 
-  const videos = loadVideos();
+  const videos = loadVideos(projectId);
   videos.unshift(entry); // neueste zuerst
-  saveVideos(videos);
+  saveVideos(videos, projectId);
   return entry;
 }
 
-function removeVideo(id) {
-  const videos = loadVideos();
-  const idx = videos.findIndex((v) => v.id === id);
+function removeVideo(id, projectId) {
+  const videos = loadVideos(projectId);
+  const idx = videos.findIndex((video) => video.id === id);
   if (idx === -1) return null;
   const [removed] = videos.splice(idx, 1);
-  saveVideos(videos);
+  saveVideos(videos, projectId);
   for (const rel of [removed.filePath, removed.thumbnailPath]) {
     if (!rel) continue;
-    const abs = path.join(DATA_DIR, rel);
+    const abs = path.join(getProjectDir(projectId), rel);
     if (fs.existsSync(abs)) fs.unlinkSync(abs);
   }
   return removed;
 }
 
-module.exports = { loadVideos, saveVideos, registerRenderedVideo, removeVideo, DATA_DIR };
+// Fuer den Upload-Planer: Videos aller Projekte, jeweils mit ihrer
+// Projekt-Zugehoerigkeit -- geplante Uploads laufen unabhaengig davon weiter,
+// welches Projekt gerade im Frontend geoeffnet ist.
+function listVideosOfAllProjects() {
+  const { projects } = listProjects();
+  return projects.flatMap((project) =>
+    loadVideos(project.id).map((video) => ({ projectId: project.id, projectName: project.name, video }))
+  );
+}
+
+module.exports = { loadVideos, saveVideos, registerRenderedVideo, removeVideo, listVideosOfAllProjects };

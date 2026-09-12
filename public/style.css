@@ -65,6 +65,36 @@ header h1 {
   outline-offset: 2px;
 }
 
+/* Projektauswahl (ein Projekt = ein Kanal), auf beiden Seiten im Kopfbereich */
+.project-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.project-bar label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.project-bar select {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: var(--card-bg);
+  max-width: 320px;
+}
+
+.project-bar .button-secondary {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+}
+
 main {
   max-width: 640px;
   margin: 0 auto;

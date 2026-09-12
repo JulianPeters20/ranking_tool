@@ -1,14 +1,24 @@
 node_modules/
+
+# Projektdaten: JSON-Stand wird versioniert, Mediendateien nicht.
+data/projects/*/clips/
+data/projects/*/output/
+data/projects/*/cut/
+data/projects/*/youtube_token.json
+
+# Altes Layout vor dem Mehrprojekt-Umbau (wird beim Start migriert).
 # "ordner/*" statt "ordner/": ist der Ordner selbst ignoriert, greift die
 # !-Ausnahme fuer .gitkeep nicht (Git schaut gar nicht erst hinein).
 data/clips/*
 data/output/*
 !data/clips/.gitkeep
 !data/output/.gitkeep
+
 data/*.tmp
 data/emoji-cache/
+data/youtube_credentials.json
+data/youtube_token.json
+
 # Logs und PID-Dateien von server.ps1
 .run/
 bin/
-data/youtube_credentials.json
-data/youtube_token.json

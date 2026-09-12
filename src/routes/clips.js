@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { loadClips, saveClips, loadSettings, saveSettings } = require('../services/state');
+const { loadClips, saveClips, loadSettings, saveSettings, getActiveProjectId } = require('../services/state');
 const { fetchMetadata, downloadClip, removeClipFiles, removeDownloadedFiles } = require('../services/downloader');
 const { startRender, getRenderStatus } = require('../services/renderer');
 const { listTitleFonts, TITLE_FONTS } = require('../services/fonts');
@@ -32,10 +32,6 @@ function withRanks(clips) {
   }));
 }
 
-router.get('/clips', (req, res) => {
-  res.json(withRanks(loadClips()));
-});
-
 function isHttpUrl(value) {
   try {
     const parsed = new URL(value);
@@ -44,6 +40,10 @@ function isHttpUrl(value) {
     return false;
   }
 }
+
+router.get('/clips', (req, res) => {
+  res.json(withRanks(loadClips()));
+});
 
 router.post('/clips', (req, res) => {
   const url = typeof (req.body || {}).url === 'string' ? req.body.url.trim() : '';
@@ -54,7 +54,11 @@ router.post('/clips', (req, res) => {
     return res.status(400).json({ error: `Ungültiger Link (nur http/https): ${url}` });
   }
 
-  const clips = loadClips();
+  // Das Projekt wird hier festgehalten: Der Download laeuft im Hintergrund
+  // weiter, auch wenn zwischenzeitlich das Projekt gewechselt wird -- der Clip
+  // muss trotzdem im urspruenglichen Projekt landen.
+  const projectId = getActiveProjectId();
+  const clips = loadClips(projectId);
   const id = crypto.randomUUID();
   const clip = {
     id,
@@ -72,20 +76,20 @@ router.post('/clips', (req, res) => {
     error: null
   };
   clips.push(clip);
-  saveClips(clips);
+  saveClips(clips, projectId);
   res.status(202).json(withRanks(clips)[clips.length - 1]);
 
   // Download laeuft im Hintergrund weiter, Frontend pollt GET /api/clips.
   (async () => {
     try {
       const meta = await fetchMetadata(url);
-      const files = await downloadClip(id, url);
-      const current = loadClips();
+      const files = await downloadClip(id, url, projectId);
+      const current = loadClips(projectId);
       const idx = current.findIndex((c) => c.id === id);
       if (idx === -1) {
         // Wurde waehrend des Downloads geloescht -- die gerade erst
         // heruntergeladenen Dateien sonst als Waisen liegen lassen.
-        removeDownloadedFiles(id);
+        removeDownloadedFiles(id, projectId);
         return;
       }
       current[idx] = {
@@ -96,14 +100,14 @@ router.post('/clips', (req, res) => {
         thumbnailPath: files.thumbnailPath,
         status: 'ready'
       };
-      saveClips(current);
+      saveClips(current, projectId);
     } catch (err) {
-      removeDownloadedFiles(id);
-      const current = loadClips();
+      removeDownloadedFiles(id, projectId);
+      const current = loadClips(projectId);
       const idx = current.findIndex((c) => c.id === id);
       if (idx === -1) return;
       current[idx] = { ...current[idx], status: 'error', error: String(err.message || err) };
-      saveClips(current);
+      saveClips(current, projectId);
     }
   })();
 });
@@ -166,20 +170,21 @@ router.delete('/clips', (req, res) => {
   if (getRenderStatus().status === 'running') {
     return res.status(409).json({ error: 'Während des Renderns kann das Ranking nicht zurückgesetzt werden.' });
   }
-  const clips = loadClips();
+  const projectId = getActiveProjectId();
+  const clips = loadClips(projectId);
   let failedFiles = 0;
   for (const clip of clips) {
     try {
-      removeClipFiles(clip);
-      removeDownloadedFiles(clip.id);
+      removeClipFiles(clip, projectId);
+      removeDownloadedFiles(clip.id, projectId);
     } catch {
       // Z.B. von einem anderen Programm gesperrte Datei -- der Clip wird
       // trotzdem aus dem Ranking entfernt, die Datei bleibt liegen.
       failedFiles += 1;
     }
   }
-  saveClips([]);
-  saveSettings({ ...loadSettings(), title: '', titleWordColors: {} });
+  saveClips([], projectId);
+  saveSettings({ ...loadSettings(projectId), title: '', titleWordColors: {} }, projectId);
   res.json({ ok: true, removed: clips.length, failedFiles });
 });
 
@@ -188,12 +193,13 @@ router.delete('/clips/:id', (req, res) => {
   if (getRenderStatus().status === 'running') {
     return res.status(409).json({ error: 'Während des Renderns können keine Clips entfernt werden.' });
   }
-  const clips = loadClips();
+  const projectId = getActiveProjectId();
+  const clips = loadClips(projectId);
   const idx = clips.findIndex((c) => c.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Clip nicht gefunden.' });
   const [removed] = clips.splice(idx, 1);
-  removeClipFiles(removed);
-  saveClips(clips);
+  removeClipFiles(removed, projectId);
+  saveClips(clips, projectId);
   res.json({ ok: true });
 });
 
@@ -231,7 +237,8 @@ router.put('/settings', (req, res) => {
 });
 
 router.post('/render', (req, res) => {
-  const clips = withRanks(loadClips());
+  const projectId = getActiveProjectId();
+  const clips = withRanks(loadClips(projectId));
   if (clips.length === 0) {
     return res.status(400).json({ error: 'Keine Clips vorhanden.' });
   }
@@ -242,8 +249,7 @@ router.post('/render', (req, res) => {
   if (getRenderStatus().status === 'running') {
     return res.status(409).json({ error: 'Es laeuft bereits ein Render-Vorgang.' });
   }
-  const settings = loadSettings();
-  startRender(clips, settings);
+  startRender(clips, loadSettings(projectId), projectId);
   res.status(202).json({ status: 'running' });
 });
 
