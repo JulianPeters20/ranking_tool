@@ -88,11 +88,9 @@ function toFfmpegColor(hex) {
   return `0x${clean.toUpperCase()}`;
 }
 
-let renderState = { status: 'idle', outputFile: null, error: null };
-
-function getRenderStatus() {
-  return renderState;
-}
+// Status liegt in renderState.js, weil sich Ranking-Render und freier Schnitt
+// ffmpeg und den Ausgabeordner teilen -- es darf immer nur einer laufen.
+const { getRenderStatus, setRenderStatus } = require('./renderState');
 
 function runFfmpeg(args) {
   return new Promise((resolve, reject) => {
@@ -447,7 +445,7 @@ function cleanupTmpDir() {
 
 function startRender(clipsWithRank, settings, projectId) {
   setProjectPaths(projectId);
-  renderState = { status: 'running', outputFile: null, error: null, projectId };
+  setRenderStatus({ status: 'running', kind: 'ranking', outputFile: null, error: null, projectId });
 
   (async () => {
     try {
@@ -478,9 +476,9 @@ function startRender(clipsWithRank, settings, projectId) {
       await require('./videoLibrary').registerRenderedVideo(outputFile, projectId).catch((err) => {
         console.error('Video konnte nicht in die Planer-Bibliothek aufgenommen werden:', err);
       });
-      renderState = { status: 'done', outputFile, error: null };
+      setRenderStatus({ status: 'done', kind: 'ranking', outputFile, error: null });
     } catch (err) {
-      renderState = { status: 'error', outputFile: null, error: String(err.message || err) };
+      setRenderStatus({ status: 'error', kind: 'ranking', outputFile: null, error: String(err.message || err) });
     } finally {
       cleanupTmpDir();
     }

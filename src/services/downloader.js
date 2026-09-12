@@ -12,8 +12,10 @@ const BIN_PATH = path.join(
   process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
 );
 
-function clipsDir(projectId) {
-  return path.join(getProjectDir(projectId), 'clips');
+// Unterordner im Projekt: 'clips' fuer das Ranking, 'cut' fuer den freien
+// Schnitt -- beide Bereiche sollen sich nicht ins Gehege kommen.
+function clipsDir(projectId, subdir = 'clips') {
+  return path.join(getProjectDir(projectId), subdir);
 }
 
 function runYtDlp(args) {
@@ -45,8 +47,8 @@ async function fetchMetadata(url) {
   };
 }
 
-async function downloadClip(id, url, projectId) {
-  const dir = clipsDir(projectId);
+async function downloadClip(id, url, projectId, subdir = 'clips') {
+  const dir = clipsDir(projectId, subdir);
   fs.mkdirSync(dir, { recursive: true });
   const outputTemplate = path.join(dir, `${id}.%(ext)s`);
 
@@ -91,8 +93,8 @@ function removeClipFiles(clip, projectId) {
 // Entfernt alles, was yt-dlp fuer diese Clip-ID angelegt hat (auch
 // .part-/Zwischendateien) -- fuer abgebrochene Downloads und Clips, die
 // waehrend des Downloads geloescht wurden.
-function removeDownloadedFiles(id, projectId) {
-  const dir = clipsDir(projectId);
+function removeDownloadedFiles(id, projectId, subdir = 'clips') {
+  const dir = clipsDir(projectId, subdir);
   if (!fs.existsSync(dir)) return;
   for (const name of fs.readdirSync(dir)) {
     if (name.startsWith(`${id}.`)) {

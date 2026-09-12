@@ -593,7 +593,9 @@ async function loadSettings() {
 // dessen Fortschritt weiter anzeigen statt den Button freizugeben.
 async function resumeRenderStatus() {
   const status = await fetchJson('/api/render/status');
-  if (status.status === 'running') pollRenderStatus();
+  // Ranking und freier Schnitt teilen sich den Render-Status -- hier nur den
+  // eigenen anzeigen.
+  if (status.status === 'running' && status.kind !== 'cut') pollRenderStatus();
 }
 
 async function init() {

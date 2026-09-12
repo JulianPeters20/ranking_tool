@@ -129,6 +129,31 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
    Schriftart/-größe und bereits gerenderte Videos im Planer bleiben
    erhalten. Während eines Renders ist das Zurücksetzen gesperrt.
 
+## Schnitt — freier Zusammenschnitt (`/edit.html`)
+
+Für Videos **ohne** Ranking-Overlay: beliebige Clips aneinanderhängen, trimmen,
+Musik und eine vorgelesene Sprachspur darunterlegen.
+
+1. **Clips holen:** per Link (TikTok, YouTube, …) oder **vom Rechner hochladen**
+   (MP4, MOV, WEBM, MKV, M4V).
+2. **Reihenfolge** am Griff **⠿** ziehen, pro Clip **Start/Ende** setzen —
+   inklusive Vorschau mit "Start/Ende hier setzen".
+3. **Format wählen:** Hochkant 9:16 (Shorts/Reels/TikTok), Quer 16:9 oder
+   Quadratisch 1:1. Alle Clips werden auf dieses Format gebracht.
+4. **Musik** (optional): Audiodatei hochladen, Lautstärke einstellen. Sie läuft
+   in Schleife bis zum Videoende.
+5. **Text vorlesen lassen** (optional): Text eingeben, Stimme wählen, fertig —
+   die Sprachspur startet am Videoanfang. Dafür muss **Voicebox laufen**
+   (`.\server.ps1 start voicebox`) und dort ein **Stimmprofil** angelegt sein.
+   Die erste Erzeugung lädt das Sprachmodell herunter und dauert entsprechend.
+6. **Video rendern** → landet in derselben Videobibliothek wie die
+   Ranking-Videos und damit direkt im **YouTube Planer**.
+
+Technisch dasselbe Zwei-Pass-Verfahren wie beim Ranking (normalisieren →
+verlustfrei zusammenhängen); Musik und Stimme werden in einem dritten Durchgang
+untergemischt (Video wird dabei nur durchgereicht). Ranking-Render und Schnitt
+teilen sich ffmpeg, deshalb läuft immer nur einer von beiden.
+
 ## YouTube Planer — automatischer geplanter Upload
 
 Über "YouTube Planer" (`/schedule.html`) lässt sich jedes fertig gerenderte

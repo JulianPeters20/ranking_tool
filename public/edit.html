@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schnitt</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Schnitt</h1>
+    <p class="subtitle">Freier Zusammenschnitt: Clips aneinanderhängen, trimmen, Musik und deine Stimme darunterlegen.</p>
+    <nav class="app-nav" aria-label="Bereiche">
+      <a href="/index.html" class="app-nav-link">Ranking erstellen</a>
+      <a href="/edit.html" class="app-nav-link is-active" aria-current="page">Schnitt</a>
+      <a href="/schedule.html" class="app-nav-link">YouTube Planer</a>
+    </nav>
+    <div class="project-bar">
+      <label for="project-select">Projekt</label>
+      <select id="project-select" title="Jedes Projekt hat eigene Clips, Videos und einen eigenen YouTube-Kanal"></select>
+      <button id="project-new-btn" type="button" class="button-secondary">Neu</button>
+      <button id="project-rename-btn" type="button" class="button-secondary">Umbenennen</button>
+      <button id="project-delete-btn" type="button" class="button-secondary">Löschen</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="add-clips">
+      <label for="cut-links">Clips per Link (einer pro Zeile)</label>
+      <textarea id="cut-links" rows="3" placeholder="https://www.tiktok.com/@user/video/1234567890&#10;https://www.youtube.com/watch?v=..."></textarea>
+      <div class="render-actions">
+        <button id="cut-add-btn" type="button">Clips laden</button>
+        <label for="cut-file-input" class="button-link secondary" role="button">Vom Rechner hochladen</label>
+        <input type="file" id="cut-file-input" accept="video/*" multiple hidden />
+      </div>
+      <p id="cut-add-error" class="error"></p>
+    </section>
+
+    <section class="clip-list-section">
+      <div class="section-header">
+        <h2>Clips <span class="hint">(Reihenfolge = Abspielreihenfolge, am Griff &#x283F; verschiebbar)</span></h2>
+        <button id="cut-reset-btn" type="button" class="button-secondary">Schnitt leeren</button>
+      </div>
+      <ul id="cut-list"></ul>
+      <p id="cut-list-empty" class="hint">Noch keine Clips im Schnitt.</p>
+    </section>
+
+    <section>
+      <h2>Format</h2>
+      <div class="title-style-row">
+        <div class="field">
+          <label for="cut-format">Seitenverhältnis</label>
+          <select id="cut-format"></select>
+        </div>
+        <div class="field">
+          <label for="cut-clip-volume">Lautstärke der Clips: <span id="cut-clip-volume-value">100 %</span></label>
+          <input type="range" id="cut-clip-volume" min="0" max="150" step="5" value="100" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Musik <span class="hint">(optional, läuft in Schleife bis zum Videoende)</span></h2>
+      <div class="render-actions">
+        <label for="cut-music-input" class="button-link secondary" role="button">Musikdatei wählen</label>
+        <input type="file" id="cut-music-input" accept="audio/*" hidden />
+        <button id="cut-music-remove" type="button" class="button-secondary" hidden>Musik entfernen</button>
+      </div>
+      <p id="cut-music-name" class="hint"></p>
+      <div class="field" id="cut-music-volume-field" hidden>
+        <label for="cut-music-volume">Lautstärke der Musik: <span id="cut-music-volume-value">15 %</span></label>
+        <input type="range" id="cut-music-volume" min="0" max="100" step="5" value="15" />
+      </div>
+    </section>
+
+    <section>
+      <h2>Text vorlesen lassen <span class="hint">(deine Stimme aus Voicebox)</span></h2>
+      <p id="cut-voice-status" class="hint"></p>
+      <div class="title-style-row">
+        <div class="field">
+          <label for="cut-voice-profile">Stimme</label>
+          <select id="cut-voice-profile"></select>
+        </div>
+        <div class="field">
+          <label for="cut-voice-language">Sprache</label>
+          <select id="cut-voice-language">
+            <option value="en">Englisch</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </div>
+      </div>
+      <label for="cut-voice-text">Text</label>
+      <textarea id="cut-voice-text" rows="3" placeholder="Here are the best GTA 6 moments of the week!"></textarea>
+      <div class="render-actions">
+        <button id="cut-voice-btn" type="button">Vorlesen lassen</button>
+        <button id="cut-voice-remove" type="button" class="button-secondary" hidden>Sprachspur entfernen</button>
+      </div>
+      <p id="cut-voice-error" class="error"></p>
+      <div id="cut-voice-preview" hidden>
+        <audio id="cut-voice-audio" controls></audio>
+        <div class="field">
+          <label for="cut-voice-volume">Lautstärke der Stimme: <span id="cut-voice-volume-value">100 %</span></label>
+          <input type="range" id="cut-voice-volume" min="0" max="200" step="5" value="100" />
+        </div>
+      </div>
+    </section>
+
+    <section class="render-section">
+      <button id="cut-render-btn">Video rendern</button>
+      <p id="cut-render-status"></p>
+      <div id="cut-render-result" hidden>
+        <video id="cut-render-video" controls></video>
+        <div class="render-actions">
+          <a href="/schedule.html" class="button-link">Im YouTube Planer einplanen &rarr;</a>
+          <a id="cut-render-download" href="#" class="button-link secondary" download>Herunterladen</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="projects.js"></script>
+  <script src="edit.js"></script>
+</body>
+</html>

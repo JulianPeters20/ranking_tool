@@ -471,4 +471,22 @@ h2 { margin-top: 0; }
 
 .button-link:hover { filter: brightness(0.95); }
 
-#render-status { color: var(--muted); }
+#render-status,
+#cut-render-status { color: var(--muted); }
+
+/* Schnittseite: Regler fuer Lautstaerken, Sprachvorschau */
+input[type="range"] {
+  width: 220px;
+  max-width: 100%;
+  accent-color: var(--accent);
+}
+
+#cut-voice-preview audio {
+  width: 100%;
+  max-width: 320px;
+  margin: 10px 0;
+  display: block;
+}
+
+/* Dateiauswahl sieht wie ein Button aus (das echte input ist versteckt) */
+label.button-link { cursor: pointer; }

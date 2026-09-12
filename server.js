@@ -3,6 +3,7 @@ const path = require('path');
 const { getProjectDir } = require('./src/services/state');
 const projectsRouter = require('./src/routes/projects');
 const clipsRouter = require('./src/routes/clips');
+const cutsRouter = require('./src/routes/cuts');
 const videosRouter = require('./src/routes/videos');
 const youtubeRouter = require('./src/routes/youtube');
 const { resetStaleUploads, retryPendingUploads } = require('./src/services/uploadScheduler');
@@ -28,7 +29,11 @@ app.use('/clips', serveFromActiveProject('clips'));
 // Fertig gerenderte Videos (Vorschau/Download) + deren Thumbnails
 app.use('/output', serveFromActiveProject('output'));
 
+// Dateien des freien Schnitts (hochgeladene Clips, Musik, Sprachspur)
+app.use('/cut', serveFromActiveProject('cut'));
+
 app.use('/api', projectsRouter);
+app.use('/api', cutsRouter);
 app.use('/api', clipsRouter);
 app.use('/api', videosRouter);
 app.use(youtubeRouter); // definiert eigene Pfade inkl. /auth/youtube/callback
