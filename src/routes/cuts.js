@@ -8,6 +8,7 @@ const { startCutRender, FORMATS } = require('../services/cutRenderer');
 const { getRenderStatus, isRendering } = require('../services/renderState');
 const { probeDuration } = require('../services/ffmpeg');
 const voicebox = require('../services/voicebox');
+const h3 = require('../services/h3');
 
 const router = express.Router();
 
@@ -65,7 +66,8 @@ router.get('/cut', async (req, res) => {
   res.json({
     ...loadCut(projectId),
     formats: Object.entries(FORMATS).map(([key, value]) => ({ key, label: value.label })),
-    voicebox: await voicebox.getStatus()
+    voicebox: await voicebox.getStatus(),
+    h3: await h3.getStatus()
   });
 });
 
@@ -168,6 +170,96 @@ router.post('/cut/upload', async (req, res) => {
     fs.rmSync(targetPath, { force: true });
     res.status(500).json({ error: `Upload fehlgeschlagen: ${String(err.message || err)}` });
   }
+});
+
+// Clip von MiniMax H3 erzeugen lassen -- laeuft wie der Link-Download im
+// Hintergrund weiter, das Frontend pollt GET /api/cut. Ein 10-Sekunden-Clip
+// braucht auf dieser Hardware gut zehn Minuten, eine synchrone Antwort waere
+// also keine Option.
+router.post('/cut/generate', async (req, res) => {
+  const { prompt, characters, durationSeconds, aspect } = req.body || {};
+
+  if (typeof prompt !== 'string' || !prompt.trim()) {
+    return res.status(400).json({ error: 'Bitte beschreiben, was passieren soll.' });
+  }
+  if (!Array.isArray(characters) || characters.length === 0) {
+    return res.status(400).json({ error: 'Bitte mindestens einen Charakter auswählen.' });
+  }
+
+  // Lieber hier scheitern als erst im Hintergrund: sonst haengt ein Clip im
+  // Schnitt, der nur deshalb fehlschlaegt, weil ComfyUI nicht laeuft.
+  const status = await h3.getStatus();
+  if (!status.available || !status.ready) {
+    return res.status(503).json({ error: status.hint || 'h3-studio ist nicht bereit.' });
+  }
+  const unknown = characters.filter((name) => !status.characters.some((c) => c.id === name));
+  if (unknown.length) {
+    return res.status(400).json({
+      error: `Unbekannte Charaktere: ${unknown.join(', ')}. Bekannt sind: ${status.characters.map((c) => c.id).join(', ') || '(keine)'}`
+    });
+  }
+
+  const projectId = getActiveProjectId();
+  const cut = loadCut(projectId);
+  const id = crypto.randomUUID();
+  const relPath = `cut/${id}.mp4`;
+
+  cut.clips.push({
+    id,
+    source: 'h3',
+    name: prompt.trim().slice(0, 120),
+    creator: null,
+    filePath: null,
+    duration: null,
+    trimStart: 0,
+    trimEnd: null,
+    status: 'generating',
+    progress: 0,
+    error: null
+  });
+  saveCut(cut, projectId);
+  res.status(202).json({ ok: true, id });
+
+  (async () => {
+    const targetPath = path.join(getProjectDir(projectId), relPath);
+    try {
+      await h3.generateClip(
+        { prompt: prompt.trim(), characters, durationSeconds, aspect },
+        targetPath,
+        (job) => {
+          // Fortschritt in den Clip-Eintrag schreiben -- die Oberflaeche
+          // pollt ohnehin GET /api/cut, ein zweiter Kanal waere unnoetig.
+          const current = loadCut(projectId);
+          const clip = current.clips.find((entry) => entry.id === id);
+          if (!clip || clip.status !== 'generating') return;
+          clip.progress = typeof job.progress === 'number' ? job.progress : clip.progress;
+          saveCut(current, projectId);
+        }
+      );
+
+      const current = loadCut(projectId);
+      const clip = current.clips.find((entry) => entry.id === id);
+      if (!clip) {
+        // Nutzer hat den Clip waehrend der Erzeugung entfernt.
+        fs.rmSync(targetPath, { force: true });
+        return;
+      }
+      Object.assign(clip, {
+        filePath: relPath,
+        duration: await probeDuration(targetPath),
+        status: 'ready',
+        progress: 100
+      });
+      saveCut(current, projectId);
+    } catch (err) {
+      fs.rmSync(targetPath, { force: true });
+      const current = loadCut(projectId);
+      const clip = current.clips.find((entry) => entry.id === id);
+      if (!clip) return;
+      Object.assign(clip, { status: 'error', error: String(err.message || err) });
+      saveCut(current, projectId);
+    }
+  })();
 });
 
 router.put('/cut/clips/order', (req, res) => {
