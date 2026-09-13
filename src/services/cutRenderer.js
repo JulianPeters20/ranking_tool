@@ -163,7 +163,12 @@ function startCutRender(cut, projectId) {
 
       // Fertiges Video in dieselbe Bibliothek wie die Ranking-Videos legen --
       // der YouTube-Planer arbeitet damit unveraendert weiter.
-      await require('./videoLibrary').registerRenderedVideo(outputFile, projectId).catch((err) => {
+      const videoLibrary = require('./videoLibrary');
+      await videoLibrary.registerRenderedVideo(
+        outputFile,
+        projectId,
+        videoLibrary.collectSources(cut.clips)
+      ).catch((err) => {
         console.error('Video konnte nicht in die Planer-Bibliothek aufgenommen werden:', err);
       });
       setRenderStatus({ status: 'done', kind: 'cut', outputFile, error: null });

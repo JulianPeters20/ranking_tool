@@ -239,6 +239,30 @@ function buildVideoCard(video, { compact } = {}) {
     descInput.addEventListener('change', () => updateVideoField(video.id, { youtubeDescription: descInput.value }));
     body.appendChild(descInput);
 
+    // Die Urheber der verwendeten Clips wurden beim Rendern mitgespeichert
+    // (die Clipliste selbst ist danach fuer das naechste Video geleert).
+    // Ein Klick haengt sie als Credits an die Beschreibung an.
+    if ((video.sources || []).length > 0) {
+      const creditsBtn = document.createElement('button');
+      creditsBtn.type = 'button';
+      creditsBtn.className = 'button-secondary credits-btn';
+      creditsBtn.textContent = `Credits anhängen (${video.sources.length})`;
+      creditsBtn.title = video.sources.map((s) => s.handle || s.url).join('\n');
+      creditsBtn.addEventListener('click', async () => {
+        const block = creditsBlock(video.sources);
+        if (descInput.value.includes(block.trim())) {
+          creditsBtn.textContent = 'Credits stehen schon drin';
+          return;
+        }
+        descInput.value = descInput.value.trim()
+          ? `${descInput.value.trim()}\n\n${block}`
+          : block;
+        await updateVideoField(video.id, { youtubeDescription: descInput.value });
+        creditsBtn.textContent = 'Credits angehängt';
+      });
+      body.appendChild(creditsBtn);
+    }
+
     const tagsInput = document.createElement('input');
     tagsInput.type = 'text';
     tagsInput.placeholder = 'Tags/Hashtags, kommagetrennt (z.B. ranking, shorts, fails)';
@@ -274,6 +298,17 @@ function buildVideoCard(video, { compact } = {}) {
 
   card.appendChild(body);
   return card;
+}
+
+// Credits-Block fuer die YouTube-Beschreibung: je Urheber eine Zeile mit
+// Handle und Profil-Link (ersatzweise der Link zum Originalvideo).
+function creditsBlock(sources) {
+  const lines = sources.map((source) => {
+    const link = source.profileUrl || source.url;
+    if (source.handle && link) return `${source.handle} – ${link}`;
+    return source.handle || link;
+  });
+  return `Credits:\n${lines.join('\n')}`;
 }
 
 function renderUnscheduled() {

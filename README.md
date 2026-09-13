@@ -118,12 +118,24 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
 6. Optional pro Clip einen kurzen Titel eintragen. Dieser erscheint **nur**
    in der Rangliste (Punkt 4), sobald der Clip "aufgedeckt" ist — nicht im
    Video selbst.
-7. "Video rendern" klicken. Das fertige Video liegt danach unter
+
+   Unter jedem Clip steht außerdem **"Quelle: @handle"** mit Link auf das
+   Originalvideo. Das Handle kommt aus den yt-dlp-Metadaten und wird beim
+   Rendern ins fertige Video übernommen — im Planer lassen sich daraus per
+   Klick **Credits** in die YouTube-Beschreibung setzen (siehe unten).
+   Clips, die vor dieser Funktion geladen wurden, zeigen nur "Originalvideo".
+7. Über dem Render-Knopf steht die **Gesamtlänge** des fertigen Videos
+   (getrimmte Clips + Startscreen). Unter 60 s wird sie gelb markiert, weil
+   **TikToks Creator Rewards Videos unter einer Minute grundsätzlich nicht
+   vergütet** — das ist die Plattform mit dem mit Abstand höchsten RPM.
+   Die Dauer wird an der heruntergeladenen Datei gemessen, nicht an yt-dlps
+   auf ganze Sekunden gerundetem Wert.
+8. "Video rendern" klicken. Das fertige Video liegt danach unter
    `data/output/final_<timestamp>.mp4` und kann im Browser direkt angeschaut
    oder heruntergeladen werden. Es erscheint außerdem automatisch im
    **YouTube Planer** (Umschalter oben auf der Seite bzw. Button direkt unter
    dem fertigen Video), bereit zum Einplanen.
-8. Neues Ranking beginnen: **"Ranking zurücksetzen"** (rechts neben der
+9. Neues Ranking beginnen: **"Ranking zurücksetzen"** (rechts neben der
    Clip-Überschrift) entfernt nach einer Rückfrage alle Clips samt
    heruntergeladener Dateien, leert Gesamttitel und Wortfarben und setzt den
    **Startscreen samt Sprachaufnahme** zurück (sonst läse der Vorspann des
@@ -191,6 +203,11 @@ ungültige Metadaten sonst erst **nach** dem vollständigen Datei-Upload ab und
 verbrennt dabei Tageskontingent. Aus demselben Grund gibt das Tool nach **drei
 erfolglosen Versuchen** auf, statt es endlos alle 5 Minuten zu wiederholen;
 neu einplanen startet den Zähler zurück.
+
+Enthält das Video fremde Clips, steht unter der Beschreibung der Knopf
+**"Credits anhängen"**. Er trägt die Urheber der verwendeten Clips (Handle +
+Profil-Link) in die Beschreibung ein. Die Liste wird beim Rendern eingefroren,
+weil die Clipliste danach für das nächste Video geleert wird.
 
 Den Kanalnamen zeigt der Planer nicht an: Das Tool fordert bewusst nur die
 Upload-Berechtigung (`youtube.upload`) an, und die erlaubt keinen

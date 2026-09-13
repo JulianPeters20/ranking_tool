@@ -595,7 +595,12 @@ function startRender(clipsWithRank, settings, projectId) {
       // Planer garantiert schon gelistet. Spaeter require'd (nicht am
       // Dateikopf), um einen Zirkelbezug zu vermeiden, falls videoLibrary.js
       // je etwas aus renderer.js braucht.
-      await require('./videoLibrary').registerRenderedVideo(outputFile, projectId).catch((err) => {
+      const videoLibrary = require('./videoLibrary');
+      await videoLibrary.registerRenderedVideo(
+        outputFile,
+        projectId,
+        videoLibrary.collectSources(clipsWithRank)
+      ).catch((err) => {
         console.error('Video konnte nicht in die Planer-Bibliothek aufgenommen werden:', err);
       });
       setRenderStatus({ status: 'done', kind: 'ranking', outputFile, error: null });

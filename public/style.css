@@ -428,6 +428,41 @@ h2 { margin-top: 0; }
 .clip-card .status-error { color: #c0392b; }
 .clip-card .status-downloading { color: #b8860b; }
 
+/* Urheber des Quellclips -- fremdes Material, das im fertigen Video landet. */
+.clip-card .clip-source {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.clip-card .clip-source a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+/* Gesamtlaenge ueber dem Render-Knopf. Unter 60 s zahlt TikToks Creator
+   Rewards grundsaetzlich nicht -- deshalb wird das dort deutlich markiert. */
+.total-duration {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.total-duration strong {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.total-duration.is-short strong { color: #b8860b; }
+.total-duration.is-long strong { color: #1e7e34; }
+
+.total-duration .duration-note {
+  display: block;
+  margin-top: 2px;
+}
+
+.total-duration.is-short .duration-note { color: #b8860b; }
+
 .clip-card .delete-btn {
   background: transparent;
   color: var(--muted);

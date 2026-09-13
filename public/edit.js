@@ -33,8 +33,12 @@ const els = {
   renderStatus: document.getElementById('cut-render-status'),
   renderResult: document.getElementById('cut-render-result'),
   renderVideo: document.getElementById('cut-render-video'),
-  renderDownload: document.getElementById('cut-render-download')
+  renderDownload: document.getElementById('cut-render-download'),
+  totalDuration: document.getElementById('cut-total-duration')
 };
+
+// Siehe app.js: unter einer Minute zahlt TikToks Creator Rewards nicht.
+const TIKTOK_MIN_SECONDS = 60;
 
 let cut = { clips: [], format: 'portrait', clipVolume: 1, music: null, voice: null, formats: [], voicebox: { available: false, profiles: [] } };
 let pollTimer = null;
@@ -198,6 +202,9 @@ function buildTrimRow(clip) {
     const index = cut.clips.findIndex((entry) => entry.id === clip.id);
     if (index !== -1) cut.clips[index] = updated;
     lastCutJson = JSON.stringify(cut.clips);
+    // Ohne Neuaufbau der Liste (die offene Vorschau soll offen bleiben) --
+    // die Gesamtlaenge muss sich trotzdem sofort mitbewegen.
+    updateTotalDuration();
   };
   startInput.addEventListener('change', commit);
   endInput.addEventListener('change', commit);
@@ -277,10 +284,57 @@ async function persistOrder() {
   renderAll();
 }
 
+// Laenge, die ein Clip im fertigen Schnitt einnimmt (getrimmter Ausschnitt).
+function clipLength(clip) {
+  if (typeof clip.duration !== 'number') return null;
+  const start = Math.max(0, Number(clip.trimStart) || 0);
+  const end = typeof clip.trimEnd === 'number' ? Math.min(clip.trimEnd, clip.duration) : clip.duration;
+  return Math.max(0, end - start);
+}
+
+function formatSeconds(seconds) {
+  return `${seconds.toFixed(1).replace('.', ',')} s`;
+}
+
+function updateTotalDuration() {
+  if (cut.clips.length === 0) {
+    els.totalDuration.textContent = '';
+    els.totalDuration.className = 'total-duration';
+    return;
+  }
+
+  const known = cut.clips.map(clipLength).filter((length) => length !== null);
+  const pending = cut.clips.length - known.length;
+  const total = known.reduce((sum, length) => sum + length, 0);
+
+  const parts = [`${known.length} Clip${known.length === 1 ? '' : 's'}`];
+  if (pending > 0) parts.push(`${pending} noch nicht gemessen`);
+
+  const short = total < TIKTOK_MIN_SECONDS;
+  els.totalDuration.className = `total-duration ${short ? 'is-short' : 'is-long'}`;
+  els.totalDuration.innerHTML = '';
+
+  const line = document.createElement('span');
+  line.appendChild(document.createTextNode('Gesamtlänge: '));
+  const value = document.createElement('strong');
+  value.textContent = formatSeconds(total);
+  line.appendChild(value);
+  line.appendChild(document.createTextNode(` (${parts.join(' · ')})`));
+  els.totalDuration.appendChild(line);
+
+  const note = document.createElement('span');
+  note.className = 'duration-note';
+  note.textContent = short
+    ? `Noch ${formatSeconds(TIKTOK_MIN_SECONDS - total)} bis 60 s – darunter zahlt TikToks Creator Rewards grundsätzlich nicht.`
+    : 'Über 60 s – lang genug für TikToks Creator Rewards.';
+  els.totalDuration.appendChild(note);
+}
+
 function renderAll() {
   els.list.innerHTML = '';
   els.listEmpty.hidden = cut.clips.length > 0;
   for (const clip of cut.clips) els.list.appendChild(buildClipCard(clip));
+  updateTotalDuration();
 
   if (!els.format.options.length) {
     for (const format of cut.formats || []) {

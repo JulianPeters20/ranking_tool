@@ -100,7 +100,7 @@ router.post('/cut/clips', (req, res) => {
   const cut = loadCut(projectId);
   const id = crypto.randomUUID();
   cut.clips.push({
-    id, source: 'link', url, name: url, filePath: null, duration: null,
+    id, source: 'link', url, name: url, creator: null, filePath: null, duration: null,
     trimStart: 0, trimEnd: null, status: 'downloading', error: null
   });
   saveCut(cut, projectId);
@@ -116,9 +116,13 @@ router.post('/cut/clips', (req, res) => {
         removeDownloadedFiles(id, projectId, 'cut');
         return;
       }
+      // Wie im Ranking-Teil: Dauer an der Datei messen (yt-dlp rundet auf
+      // ganze Sekunden), damit die Laengenanzeige stimmt.
+      const exact = await probeDuration(path.join(getProjectDir(projectId), files.filePath));
       Object.assign(clip, {
         name: meta.title || clip.name,
-        duration: meta.duration,
+        duration: exact ?? meta.duration,
+        creator: meta.creator,
         filePath: files.filePath,
         status: 'ready'
       });

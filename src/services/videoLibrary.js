@@ -39,8 +39,31 @@ function extractThumbnail(videoAbsPath, outAbsPath) {
   });
 }
 
-// Wird von renderer.js nach jedem erfolgreichen Render aufgerufen.
-async function registerRenderedVideo(outputFile, projectId) {
+// Quellenliste eines fertigen Videos: welcher fremde Clip von wem stammt.
+// Wird beim Rendern eingefroren, weil die Clipliste danach fuer das naechste
+// Video zurueckgesetzt wird -- ohne diese Kopie waere im Planer nicht mehr
+// feststellbar, wen das Video zeigt. Doppelte Urheber (mehrere Clips desselben
+// Kanals) erscheinen nur einmal.
+function collectSources(clips) {
+  const seen = new Set();
+  const sources = [];
+  for (const clip of clips || []) {
+    if (!clip || !clip.url) continue; // hochgeladene Dateien haben keine Quelle
+    const handle = clip.creator && clip.creator.handle ? clip.creator.handle : null;
+    const key = handle || clip.url;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    sources.push({
+      handle,
+      profileUrl: clip.creator && clip.creator.url ? clip.creator.url : null,
+      url: clip.url
+    });
+  }
+  return sources;
+}
+
+// Wird von renderer.js/cutRenderer.js nach jedem erfolgreichen Render aufgerufen.
+async function registerRenderedVideo(outputFile, projectId, sources = []) {
   const id = crypto.randomUUID();
   const videoAbsPath = path.join(outputDir(projectId), outputFile);
   const thumbsDir = path.join(outputDir(projectId), 'thumbnails');
@@ -60,6 +83,7 @@ async function registerRenderedVideo(outputFile, projectId) {
     thumbnailPath: fs.existsSync(thumbAbsPath) ? `output/thumbnails/${id}.jpg` : null,
     width: size ? size.width : null,
     height: size ? size.height : null,
+    sources,
     createdAt: new Date().toISOString(),
     youtubeTitle: '',
     youtubeDescription: '',
@@ -101,4 +125,4 @@ function listVideosOfAllProjects() {
   );
 }
 
-module.exports = { loadVideos, saveVideos, registerRenderedVideo, removeVideo, listVideosOfAllProjects };
+module.exports = { loadVideos, saveVideos, collectSources, registerRenderedVideo, removeVideo, listVideosOfAllProjects };

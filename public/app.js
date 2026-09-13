@@ -13,6 +13,13 @@ const overallTitleEl = document.getElementById('overall-title');
 const titleWordEditorEl = document.getElementById('title-word-editor');
 const titleFontEl = document.getElementById('title-font');
 const titleSizeEl = document.getElementById('title-size');
+const totalDurationEl = document.getElementById('total-duration');
+
+// TikToks Creator Rewards zahlt ausschliesslich fuer Videos ueber einer
+// Minute. Da das die einzige der drei Plattformen ist, die pro Aufruf
+// nennenswert zahlt, ist die Gesamtlaenge eine Entscheidung, die man vor
+// jedem Render sehen will -- nicht erst im fertigen Video.
+const TIKTOK_MIN_SECONDS = 60;
 
 let clips = [];
 let lastClipsJson = '';
@@ -58,6 +65,9 @@ function applyClipUpdate(updated) {
   if (idx === -1) return;
   clips[idx] = updated;
   lastClipsJson = JSON.stringify(clips);
+  // Die Liste wird hier bewusst nicht neu gebaut -- die Gesamtlaenge muss
+  // sich nach einer Trim-Aenderung trotzdem sofort mitbewegen.
+  updateTotalDuration();
 }
 
 async function loadClips() {
@@ -99,6 +109,60 @@ function scheduleFollowUpPollIfNeeded() {
   if (stillDownloading && !pollTimer) {
     pollTimer = setInterval(pollClips, 1500);
   }
+}
+
+// Sekunden, die dieser Clip im fertigen Video einnimmt -- also der getrimmte
+// Ausschnitt, nicht die Laenge der Quelldatei. null, solange die Dauer noch
+// nicht bekannt ist (Download laeuft).
+function clipLength(clip) {
+  if (typeof clip.duration !== 'number') return null;
+  const start = Math.max(0, Number(clip.trimStart) || 0);
+  const end = typeof clip.trimEnd === 'number' ? Math.min(clip.trimEnd, clip.duration) : clip.duration;
+  return Math.max(0, end - start);
+}
+
+function formatSeconds(seconds) {
+  return `${seconds.toFixed(1).replace('.', ',')} s`;
+}
+
+// Gesamtlaenge des fertigen Videos: alle getrimmten Clips plus der
+// Startscreen, falls aktiv (gleiche Rechnung wie im Renderer).
+function updateTotalDuration() {
+  const known = clips.map(clipLength).filter((length) => length !== null);
+  const pending = clips.length - known.length;
+
+  if (clips.length === 0) {
+    totalDurationEl.textContent = '';
+    totalDurationEl.className = 'total-duration';
+    return;
+  }
+
+  const introSeconds = intro && intro.enabled ? introLength() : 0;
+  const total = known.reduce((sum, length) => sum + length, 0) + introSeconds;
+
+  const parts = [`${known.length} Clip${known.length === 1 ? '' : 's'}`];
+  if (introSeconds > 0) parts.push(`${formatSeconds(introSeconds)} Startscreen`);
+  if (pending > 0) parts.push(`${pending} noch nicht gemessen`);
+
+  const short = total < TIKTOK_MIN_SECONDS;
+  const missing = TIKTOK_MIN_SECONDS - total;
+  totalDurationEl.className = `total-duration ${short ? 'is-short' : 'is-long'}`;
+  totalDurationEl.innerHTML = '';
+
+  const line = document.createElement('span');
+  line.appendChild(document.createTextNode('Gesamtlänge: '));
+  const value = document.createElement('strong');
+  value.textContent = formatSeconds(total);
+  line.appendChild(value);
+  line.appendChild(document.createTextNode(` (${parts.join(' · ')})`));
+  totalDurationEl.appendChild(line);
+
+  const note = document.createElement('span');
+  note.className = 'duration-note';
+  note.textContent = short
+    ? `Noch ${formatSeconds(missing)} bis 60 s – darunter zahlt TikToks Creator Rewards grundsätzlich nicht.`
+    : 'Über 60 s – lang genug für TikToks Creator Rewards.';
+  totalDurationEl.appendChild(note);
 }
 
 function statusLabel(clip) {
@@ -222,10 +286,30 @@ function buildClipControls(clip) {
   return container;
 }
 
+// Zeile "Quelle: @handle" unter dem Clip. Fehlt das Handle (Plattform liefert
+// keins), bleibt der Link zum Originalvideo -- Hauptsache, die Herkunft des
+// fremden Materials ist im Tool sichtbar und nicht nur in der gespeicherten URL.
+function buildSourceLine(clip) {
+  if (!clip.url) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'clip-source';
+  wrap.appendChild(document.createTextNode('Quelle: '));
+
+  const link = document.createElement('a');
+  link.href = clip.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = clip.creator && clip.creator.handle ? clip.creator.handle : 'Originalvideo';
+  link.title = clip.url;
+  wrap.appendChild(link);
+  return wrap;
+}
+
 function renderList() {
   listEl.innerHTML = '';
   listEmptyEl.hidden = clips.length > 0;
   updateResetButton();
+  updateTotalDuration();
 
   for (const clip of clips) {
     const li = document.createElement('li');
@@ -274,6 +358,11 @@ function renderList() {
     meta.className = 'meta' + (clip.status === 'error' ? ' status-error' : clip.status === 'downloading' ? ' status-downloading' : '');
     meta.textContent = statusLabel(clip);
     body.appendChild(meta);
+
+    // Urheber des Quellclips: sichtbar, anklickbar, und beim Rendern als
+    // Credits ins fertige Video uebernommen (siehe YouTube-Planer).
+    const source = buildSourceLine(clip);
+    if (source) body.appendChild(source);
 
     if (clip.status === 'ready') {
       body.appendChild(buildClipControls(clip));
@@ -628,6 +717,9 @@ function renderIntroSection() {
   introEls.status.textContent = canGenerate
     ? `Startscreen-Länge: ${introLength().toFixed(1)} s${intro.voice ? ' (richtet sich nach der Stimme)' : ''}`
     : (voiceboxState.hint || 'Voicebox läuft, hat aber noch kein Stimmprofil – lege eins unter http://localhost:5173 an.');
+
+  // Der Startscreen zaehlt zur Gesamtlaenge des Videos.
+  updateTotalDuration();
 }
 
 async function loadIntro() {

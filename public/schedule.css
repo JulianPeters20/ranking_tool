@@ -76,6 +76,14 @@ main { max-width: 1000px; }
 
 .video-card-meta { font-size: 0.75rem; }
 
+/* Haengt die Urheber der verwendeten Clips an die Beschreibung an. */
+.credits-btn {
+  align-self: flex-start;
+  border-width: 1px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+}
+
 .video-card-delete {
   background: transparent;
   color: #c0392b;

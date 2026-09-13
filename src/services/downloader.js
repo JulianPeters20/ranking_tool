@@ -36,6 +36,27 @@ function runYtDlp(args) {
   });
 }
 
+// Urheber des Clips aus den yt-dlp-Metadaten. Welches Feld das Handle
+// enthaelt, ist plattformabhaengig (direkt an einem TikTok-Link geprueft):
+//   TikTok:  uploader='afvofficial', uploader_id=<Zahl>, uploader_url=Profil
+//   YouTube: uploader_id='@handle'
+// Deshalb gewinnt uploader_id nur, wenn es wirklich ein Handle ist.
+// channel_url wird bewusst nicht genutzt -- TikTok liefert dort eine
+// unlesbare Base64-Kennung statt der Profilseite.
+function creatorOf(info) {
+  const fromId = typeof info.uploader_id === 'string' && info.uploader_id.startsWith('@')
+    ? info.uploader_id
+    : '';
+  const raw = [fromId, info.uploader, info.channel]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .find(Boolean);
+  if (!raw) return null;
+  return {
+    handle: (raw.startsWith('@') ? raw : `@${raw}`).slice(0, 80),
+    url: typeof info.uploader_url === 'string' && info.uploader_url ? info.uploader_url : null
+  };
+}
+
 // Die URL steht immer hinter "--": ein Wert wie "--exec=..." wuerde von
 // yt-dlp sonst als Option (inkl. Befehlsausfuehrung) interpretiert.
 async function fetchMetadata(url) {
@@ -43,7 +64,10 @@ async function fetchMetadata(url) {
   const info = JSON.parse(raw);
   return {
     title: (info.title || info.description || '').replace(/\s+/g, ' ').trim().slice(0, 80),
-    duration: typeof info.duration === 'number' ? info.duration : null
+    // Auf ganze Sekunden gerundet -- wer es genau braucht (Laengenanzeige,
+    // Trimmen), misst die fertige Datei mit probeDuration nach.
+    duration: typeof info.duration === 'number' ? info.duration : null,
+    creator: creatorOf(info)
   };
 }
 

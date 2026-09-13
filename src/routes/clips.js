@@ -68,6 +68,9 @@ router.post('/clips', (req, res) => {
     id,
     url,
     title: '',
+    // Urheber des Quellclips (Handle + Profil-URL), sobald die Metadaten da
+    // sind -- fuer die Credits in der YouTube-Beschreibung.
+    creator: null,
     rankOverride: null,
     // Ausschnitt des Originalclips, der ins Endvideo kommt -- Sekunden ab
     // Clipanfang. trimEnd:null bedeutet "bis zum Ende des Clips".
@@ -96,10 +99,15 @@ router.post('/clips', (req, res) => {
         removeDownloadedFiles(id, projectId);
         return;
       }
+      // Dauer an der heruntergeladenen Datei messen statt yt-dlps auf ganze
+      // Sekunden gerundeten Wert zu nehmen: davon haengen die Laengenanzeige
+      // und das "Ende = Clipende"-Verhalten beim Trimmen ab.
+      const exact = await probeDuration(path.join(getProjectDir(projectId), files.filePath));
       current[idx] = {
         ...current[idx],
         title: meta.title,
-        duration: meta.duration,
+        duration: exact ?? meta.duration,
+        creator: meta.creator,
         filePath: files.filePath,
         thumbnailPath: files.thumbnailPath,
         status: 'ready'
