@@ -146,9 +146,15 @@ async function uploadVideo(entry, projectId) {
   const youtube = google.youtube({ version: 'v3', auth });
   const filePath = path.join(getProjectDir(projectId), entry.filePath);
 
-  const description = entry.youtubeDescription
-    ? `${entry.youtubeDescription}\n\n#Shorts`
-    : '#Shorts';
+  // "#Shorts" gehoert nur unter Hochkant-Videos. Der freie Schnitt kann auch
+  // quer (16:9) oder quadratisch rendern -- dort wuerde der Hashtag YouTube
+  // ein Shorts-Video versprechen, das keines ist. Fehlt die Groesse (aeltere
+  // Eintraege vor diesem Feld), bleibt es beim bisherigen Verhalten: die
+  // stammen alle aus dem Ranking-Render und sind immer 1080x1920.
+  const isPortrait = !(Number(entry.width) > 0 && Number(entry.height) > 0)
+    || Number(entry.height) > Number(entry.width);
+  const parts = [entry.youtubeDescription, isPortrait ? '#Shorts' : null].filter(Boolean);
+  const description = parts.join('\n\n');
 
   const res = await youtube.videos.insert({
     part: ['snippet', 'status'],

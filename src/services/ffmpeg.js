@@ -26,13 +26,17 @@ function runFfmpeg(args) {
   });
 }
 
+// Liefert null, wenn ffprobe gar nicht befragt werden konnte (nicht
+// installiert, abgestuerzt, Datei unlesbar) -- und die (ggf. leere) Ausgabe,
+// wenn ffprobe gelaufen ist. Der Unterschied ist wichtig: "hat keine Tonspur"
+// und "konnte nicht nachgeschaut werden" muessen verschieden behandelt werden.
 function runFfprobe(args) {
   return new Promise((resolve) => {
     const proc = spawn('ffprobe', args, { windowsHide: true });
     let stdout = '';
     proc.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
-    proc.on('error', () => resolve(''));
-    proc.on('close', () => resolve(stdout.trim()));
+    proc.on('error', () => resolve(null));
+    proc.on('close', (code) => resolve(code === 0 ? stdout.trim() : null));
   });
 }
 
@@ -43,7 +47,10 @@ async function probeHasAudio(inputPath) {
   const out = await runFfprobe([
     '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', inputPath
   ]);
-  // Ohne ffprobe (leere Ausgabe wegen Fehler) wie bisher Ton annehmen.
+  // Laesst sich die Datei nicht befragen, Ton annehmen: bei "kein Ton" wird
+  // eine Stille-Spur ergaenzt und per -map 1:a:0 genutzt -- eine falsche
+  // Antwort wuerde den Originalton also stumm ersetzen statt nur zu stoeren.
+  if (out === null) return true;
   return out.length > 0;
 }
 
@@ -51,7 +58,7 @@ async function probeDuration(inputPath) {
   const out = await runFfprobe([
     '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', inputPath
   ]);
-  const duration = Number.parseFloat(out);
+  const duration = Number.parseFloat(out === null ? '' : out);
   return Number.isFinite(duration) ? duration : null;
 }
 
@@ -64,4 +71,15 @@ function toRelativeFfmpegPath(absPath) {
   return toFfmpegPath(path.relative(PROJECT_ROOT, absPath));
 }
 
-module.exports = { PROJECT_ROOT, runFfmpeg, runFfprobe, probeHasAudio, probeDuration, toFfmpegPath, toRelativeFfmpegPath };
+// Bildgroesse des ersten Videostroms -- entscheidet z.B., ob ein fertiges
+// Video hochkant (Shorts) oder quer (klassisches YouTube-Video) ist.
+async function probeSize(inputPath) {
+  const out = await runFfprobe([
+    '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', inputPath
+  ]);
+  if (out === null) return null;
+  const [width, height] = out.split('x').map((value) => Number.parseInt(value, 10));
+  return Number.isFinite(width) && Number.isFinite(height) ? { width, height } : null;
+}
+
+module.exports = { PROJECT_ROOT, runFfmpeg, runFfprobe, probeHasAudio, probeDuration, probeSize, toFfmpegPath, toRelativeFfmpegPath };

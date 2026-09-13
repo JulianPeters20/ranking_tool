@@ -15,13 +15,20 @@
 //          (gleiches Format nach Pass 1 -> "-c copy" reicht).
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 const { getProjectDir } = require('./state');
+// Gemeinsame ffmpeg-Helfer (siehe ffmpeg.js): denselben Satz nutzt der freie
+// Schnitt, damit die beiden Render-Wege sich nicht auseinanderentwickeln.
+const {
+  PROJECT_ROOT,
+  runFfmpeg,
+  probeHasAudio,
+  toFfmpegPath,
+  toRelativeFfmpegPath
+} = require('./ffmpeg');
 const { resolveTitleFont, DEFAULT_TITLE_FONT_KEY } = require('./fonts');
 const { measureWidth, capHeight } = require('./textMeasure');
 const { graphemes, segmentText, resolveEmojiImages } = require('./emoji');
 
-const PROJECT_ROOT = path.join(__dirname, '..', '..');
 // Pfade des gerade gerenderten Projekts. Es laeuft immer nur ein Render
 // gleichzeitig (POST /api/render lehnt Parallelstarts ab), daher reichen
 // Modul-Variablen, die startRender() zu Beginn setzt.
@@ -92,55 +99,10 @@ function toFfmpegColor(hex) {
 // ffmpeg und den Ausgabeordner teilen -- es darf immer nur einer laufen.
 const { getRenderStatus, setRenderStatus } = require('./renderState');
 
-function runFfmpeg(args) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn('ffmpeg', args, { windowsHide: true, cwd: PROJECT_ROOT });
-    let stderr = '';
-    proc.stderr.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-    proc.on('error', reject);
-    proc.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`ffmpeg beendet mit Code ${code}:\n${stderr.slice(-2000)}`));
-    });
-  });
-}
-
-// Manche Clips (z.B. reine Bild-/Slideshow-Posts) haben keine Tonspur. Ohne
-// Ton faehrt ffmpeg ein reines Video-mp4 raus -- das laesst sich im Pass 2
-// nicht per "-c copy" mit den uebrigen Clips (Video+Ton) zusammenhaengen.
-function probeHasAudio(inputPath) {
-  return new Promise((resolve) => {
-    const proc = spawn('ffprobe', [
-      '-v', 'error',
-      '-select_streams', 'a',
-      '-show_entries', 'stream=index',
-      '-of', 'csv=p=0',
-      inputPath
-    ], { windowsHide: true });
-    let stdout = '';
-    proc.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
-    // Ohne ffprobe wie bisher davon ausgehen, dass Ton vorhanden ist.
-    proc.on('error', () => resolve(true));
-    proc.on('close', () => resolve(stdout.trim().length > 0));
-  });
-}
-
 function writeTextFile(dir, name, text) {
   const filePath = path.join(dir, name);
   fs.writeFileSync(filePath, text, 'utf-8');
   return filePath;
-}
-
-function toFfmpegPath(p) {
-  return p.split(path.sep).join('/');
-}
-
-// Pfad relativ zu PROJECT_ROOT (= cwd des ffmpeg-Prozesses), damit in den
-// drawtext-Filteroptionen kein Laufwerksbuchstabe (":") auftaucht.
-function toRelativeFfmpegPath(absPath) {
-  return toFfmpegPath(path.relative(PROJECT_ROOT, absPath));
 }
 
 function emojiMetrics(fontSize) {

@@ -125,9 +125,11 @@ Schlagen TikTok-Downloads plötzlich fehl, ist meist yt-dlp veraltet (TikTok
    dem fertigen Video), bereit zum Einplanen.
 8. Neues Ranking beginnen: **"Ranking zurücksetzen"** (rechts neben der
    Clip-Überschrift) entfernt nach einer Rückfrage alle Clips samt
-   heruntergeladener Dateien und leert Gesamttitel und Wortfarben.
-   Schriftart/-größe und bereits gerenderte Videos im Planer bleiben
-   erhalten. Während eines Renders ist das Zurücksetzen gesperrt.
+   heruntergeladener Dateien, leert Gesamttitel und Wortfarben und setzt den
+   **Startscreen samt Sprachaufnahme** zurück (sonst läse der Vorspann des
+   nächsten Videos den Text des vorherigen vor). Schriftart/-größe und
+   bereits gerenderte Videos im Planer bleiben erhalten. Während eines
+   Renders ist das Zurücksetzen gesperrt.
 
 ### Startscreen (optional)
 
@@ -182,8 +184,13 @@ nächsten Start und danach alle 5 Minuten automatisch erneut versucht —
 solange der geplante Zeitpunkt noch in der Zukunft liegt. Ist er inzwischen
 verstrichen, wird das Video als Fehler markiert und muss neu eingeplant
 werden (YouTube akzeptiert keinen Veröffentlichungszeitpunkt in der
-Vergangenheit). Titel (max. 100 Zeichen, keine `< >`) und Beschreibung werden
-schon beim Einplanen geprüft.
+Vergangenheit). Titel (max. 100 Zeichen, keine `< >`), Beschreibung (max.
+5000 Bytes) und Tags (zusammen max. 500 Zeichen; Tags mit Leerzeichen zählen
+zwei Zeichen extra) werden schon beim Einplanen geprüft — YouTube lehnt
+ungültige Metadaten sonst erst **nach** dem vollständigen Datei-Upload ab und
+verbrennt dabei Tageskontingent. Aus demselben Grund gibt das Tool nach **drei
+erfolglosen Versuchen** auf, statt es endlos alle 5 Minuten zu wiederholen;
+neu einplanen startet den Zähler zurück.
 
 Den Kanalnamen zeigt der Planer nicht an: Das Tool fordert bewusst nur die
 Upload-Berechtigung (`youtube.upload`) an, und die erlaubt keinen
@@ -257,8 +264,9 @@ Klicks pro Video.
 - **Quota:** Ein Upload kostet 1.600 der standardmäßig 10.000 täglichen
   Einheiten → ca. 6 Video-Uploads pro Tag ohne Antrag auf mehr Kontingent.
 - Für YouTube Shorts reicht das vom Tool erzeugte 9:16-Format automatisch
-  aus (zusätzlich wird `#Shorts` an die Beschreibung angehängt). Uploads über
-  3 Minuten Länge zählen nicht mehr als Short.
+  aus. `#Shorts` wird nur an **hochkant** gerenderte Videos angehängt — der
+  freie Schnitt kann auch 16:9 und 1:1, dort wäre der Hashtag falsch.
+  Uploads über 3 Minuten Länge zählen nicht mehr als Short.
 - "Made for Kids" (COPPA-Pflichtangabe) ist pro Video im Planer ankreuzbar,
   Standard ist "Nein" — die rechtliche Einordnung bleibt in deiner
   Verantwortung.

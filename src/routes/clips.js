@@ -188,7 +188,22 @@ router.delete('/clips', (req, res) => {
     }
   }
   saveClips([], projectId);
-  saveSettings({ ...loadSettings(projectId), title: '', titleWordColors: {} }, projectId);
+
+  // Auch die Startscreen-Stimme gehoert zum alten Ranking: sie liest den
+  // Titel des *vorherigen* Videos vor. Bliebe sie stehen, spraeche der
+  // Vorspann des naechsten Videos unbemerkt den alten Text. Ohne Stimme und
+  // ohne Titel hat der Vorspann keinen Inhalt mehr -> gleich mit abschalten;
+  // eine neu erzeugte Stimme schaltet ihn wie bisher von selbst wieder ein.
+  const settings = loadSettings(projectId);
+  if (settings.intro && settings.intro.voice && settings.intro.voice.filePath) {
+    fs.rmSync(path.join(getProjectDir(projectId), settings.intro.voice.filePath), { force: true });
+  }
+  saveSettings({
+    ...settings,
+    title: '',
+    titleWordColors: {},
+    intro: { ...(settings.intro || { duration: 2 }), enabled: false, voice: null }
+  }, projectId);
   res.json({ ok: true, removed: clips.length, failedFiles });
 });
 

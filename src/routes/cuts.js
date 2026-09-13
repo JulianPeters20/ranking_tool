@@ -227,6 +227,10 @@ router.post('/cut/music', async (req, res) => {
     cut.music = { name: String(req.query.name).slice(0, 120), filePath: `cut/music${ext}`, volume: cut.music ? cut.music.volume : 0.15 };
     res.status(201).json(saveCut(cut, projectId));
   } catch (err) {
+    // Halb geschriebene Datei entfernen (wie beim Clip-Upload) -- sie wuerde
+    // sonst als vermeintliche Musik liegen bleiben und beim naechsten Render
+    // mitgemischt.
+    fs.rmSync(targetPath, { force: true });
     res.status(500).json({ error: `Upload fehlgeschlagen: ${String(err.message || err)}` });
   }
 });

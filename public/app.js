@@ -386,8 +386,8 @@ function updateResetButton() {
 resetRankingBtn.addEventListener('click', async () => {
   const count = clips.length;
   const question = count > 0
-    ? `Ranking zurücksetzen?\n\nAlle ${count} Clips werden entfernt (inkl. der heruntergeladenen Dateien) und der Gesamttitel wird geleert.\n\nSchriftart, Schriftgröße und bereits gerenderte Videos im YouTube-Planer bleiben erhalten.`
-    : 'Gesamttitel und Wortfarben zurücksetzen?';
+    ? `Ranking zurücksetzen?\n\nAlle ${count} Clips werden entfernt (inkl. der heruntergeladenen Dateien), der Gesamttitel wird geleert und der Startscreen samt Sprachaufnahme wird zurückgesetzt.\n\nSchriftart, Schriftgröße und bereits gerenderte Videos im YouTube-Planer bleiben erhalten.`
+    : 'Gesamttitel, Wortfarben und Startscreen zurücksetzen?';
   if (!confirm(question)) return;
 
   resetRankingBtn.disabled = true;
@@ -400,6 +400,10 @@ resetRankingBtn.addEventListener('click', async () => {
     renderStatusEl.textContent = '';
     renderResultEl.hidden = true;
     await loadSettings();
+    // Der Startscreen wird serverseitig mit zurueckgesetzt -- ohne Nachladen
+    // zeigte der Bereich weiter die Sprachaufnahme des alten Rankings an.
+    await loadIntro();
+    introEls.text.value = '';
     await loadClips();
     if (result.failedFiles > 0) {
       alert(`${result.failedFiles} Clip-Datei(en) konnten nicht gelöscht werden (evtl. von einem anderen Programm geöffnet). Die Clips sind trotzdem aus dem Ranking entfernt.`);

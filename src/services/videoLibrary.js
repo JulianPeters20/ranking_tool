@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { getProjectDir, writeJsonAtomic, readJson, listProjects } = require('./state');
+const { probeSize } = require('./ffmpeg');
 
 function videosFile(projectId) {
   return path.join(getProjectDir(projectId), 'videos.json');
@@ -47,10 +48,18 @@ async function registerRenderedVideo(outputFile, projectId) {
   const thumbAbsPath = path.join(thumbsDir, `${id}.jpg`);
   await extractThumbnail(videoAbsPath, thumbAbsPath);
 
+  // Bildgroesse festhalten: der freie Schnitt kann auch quer (16:9) oder
+  // quadratisch rendern -- daran haengt beim Upload, ob "#Shorts" angehaengt
+  // wird. null, wenn ffprobe nichts liefert (dann entscheidet der Upload wie
+  // bisher zugunsten von Shorts).
+  const size = await probeSize(videoAbsPath);
+
   const entry = {
     id,
     filePath: `output/${outputFile}`,
     thumbnailPath: fs.existsSync(thumbAbsPath) ? `output/thumbnails/${id}.jpg` : null,
+    width: size ? size.width : null,
+    height: size ? size.height : null,
     createdAt: new Date().toISOString(),
     youtubeTitle: '',
     youtubeDescription: '',

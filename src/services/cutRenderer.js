@@ -106,7 +106,12 @@ async function mixAudio(videoPath, cut, projectId, outputPath) {
 
   // duration=first: die Laenge richtet sich nach dem Video, nicht nach Musik
   // oder Stimme.
-  filters.push(`${mixLabels.join('')}amix=inputs=${mixLabels.length}:duration=first:dropout_transition=0,alimiter=limit=0.95[aout]`);
+  // normalize=0: amix teilt sonst jeden Eingang durch deren Anzahl -- mit
+  // Musik waere der Originalton nur noch halb, mit Musik UND Stimme ein
+  // Drittel so laut, egal was oben als Lautstaerke eingestellt ist (gemessen:
+  // -21,1 dB allein gegen -27,0 dB mit Musik). Gegen Uebersteuerung schuetzt
+  // der alimiter dahinter, nicht das Herunterrechnen.
+  filters.push(`${mixLabels.join('')}amix=inputs=${mixLabels.length}:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95[aout]`);
 
   await runFfmpeg([
     '-y',

@@ -22,6 +22,18 @@ function validateForYoutube(video) {
   if (Buffer.byteLength(`${description}\n\n#Shorts`, 'utf8') > 5000) {
     return 'Die Beschreibung ist zu lang (max. 5000 Bytes inkl. angehängtem #Shorts).';
   }
+  // Tags: laut YouTube Data API hat snippet.tags[] zusammen hoechstens 500
+  // Zeichen; ein Tag mit Leerzeichen wird dabei behandelt, als stuende es in
+  // Anfuehrungszeichen -- die beiden Zeichen zaehlen mit. Ohne diese Pruefung
+  // faellt der Upload erst NACH dem vollstaendigen Hochladen der Datei durch
+  // und kostet unnoetig Tageskontingent.
+  const tagLength = (video.tags || []).reduce(
+    (sum, tag) => sum + [...String(tag)].length + (/\s/.test(String(tag)) ? 2 : 0),
+    0
+  );
+  if (tagLength > 500) {
+    return `Die Tags sind zusammen zu lang (max. 500 Zeichen, aktuell ${tagLength}). Tags mit Leerzeichen zählen zwei Zeichen extra.`;
+  }
   return null;
 }
 
@@ -83,7 +95,9 @@ router.put('/videos/:id/schedule', (req, res) => {
     return res.status(400).json({ error: validationError });
   }
 
-  videos[idx] = { ...videos[idx], scheduledAt: scheduledDate.toISOString(), error: null };
+  // Neu einplanen heisst: neuer Anlauf -- der Zaehler der abgebrochenen
+  // Upload-Versuche faengt wieder bei 0 an (siehe uploadScheduler.js).
+  videos[idx] = { ...videos[idx], scheduledAt: scheduledDate.toISOString(), error: null, uploadAttempts: 0 };
   saveVideos(videos);
   res.json(videos[idx]);
 
@@ -99,7 +113,7 @@ router.put('/videos/:id/unschedule', (req, res) => {
   if (videos[idx].uploadStatus === 'scheduled_on_youtube' || videos[idx].uploadStatus === 'uploading') {
     return res.status(409).json({ error: 'Video ist bereits (oder wird gerade) auf YouTube hochgeladen -- Änderungen nur noch in YouTube Studio möglich.' });
   }
-  videos[idx] = { ...videos[idx], scheduledAt: null, uploadStatus: 'draft', error: null };
+  videos[idx] = { ...videos[idx], scheduledAt: null, uploadStatus: 'draft', error: null, uploadAttempts: 0 };
   saveVideos(videos);
   res.json(videos[idx]);
 });
