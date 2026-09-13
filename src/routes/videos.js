@@ -42,7 +42,7 @@ router.get('/videos', (req, res) => {
 });
 
 router.put('/videos/:id', (req, res) => {
-  const { youtubeTitle, youtubeDescription, tags, madeForKids } = req.body || {};
+  const { youtubeTitle, youtubeDescription, tags, madeForKids, containsSyntheticMedia } = req.body || {};
   const videos = loadVideos();
   const idx = videos.findIndex((v) => v.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Video nicht gefunden.' });
@@ -52,6 +52,7 @@ router.put('/videos/:id', (req, res) => {
   if (typeof youtubeDescription === 'string') updated.youtubeDescription = youtubeDescription;
   if (Array.isArray(tags)) updated.tags = tags.map((t) => String(t).trim()).filter(Boolean);
   if (typeof madeForKids === 'boolean') updated.madeForKids = madeForKids;
+  if (typeof containsSyntheticMedia === 'boolean') updated.containsSyntheticMedia = containsSyntheticMedia;
 
   videos[idx] = updated;
   saveVideos(videos);

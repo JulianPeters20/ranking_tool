@@ -89,6 +89,9 @@ async function registerRenderedVideo(outputFile, projectId, sources = []) {
     youtubeDescription: '',
     tags: [],
     madeForKids: false,
+    // YouTubes Angabe "verändertes oder synthetisches Material". Standard aus:
+    // die Einschätzung trifft der Nutzer pro Video im Planer.
+    containsSyntheticMedia: false,
     scheduledAt: null,
     uploadStatus: 'draft', // draft | uploading | scheduled_on_youtube | error
     youtubeVideoId: null,

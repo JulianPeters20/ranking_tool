@@ -283,6 +283,20 @@ function buildVideoCard(video, { compact } = {}) {
     kidsRow.appendChild(document.createTextNode(' Für Kinder gemacht ("Made for Kids")'));
     body.appendChild(kidsRow);
 
+    // YouTubes Selbstauskunft für realistisches verändertes/synthetisches
+    // Material. Relevant, sobald der Startscreen eine KI-Stimme benutzt, die
+    // nicht die eigene geklonte ist.
+    const syntheticRow = document.createElement('label');
+    syntheticRow.className = 'kids-row';
+    syntheticRow.title = 'Setzt status.containsSyntheticMedia beim Upload. In YouTube Studio heißt die Angabe "Verändertes oder synthetisches Material".';
+    const syntheticCheckbox = document.createElement('input');
+    syntheticCheckbox.type = 'checkbox';
+    syntheticCheckbox.checked = !!video.containsSyntheticMedia;
+    syntheticCheckbox.addEventListener('change', () => updateVideoField(video.id, { containsSyntheticMedia: syntheticCheckbox.checked }));
+    syntheticRow.appendChild(syntheticCheckbox);
+    syntheticRow.appendChild(document.createTextNode(' Verändertes oder synthetisches Material (z.B. KI-Stimme)'));
+    body.appendChild(syntheticRow);
+
     const meta = document.createElement('div');
     meta.className = 'video-card-meta hint';
     meta.textContent = 'Auf einen Kalender-Slot ziehen, um einzuplanen.';

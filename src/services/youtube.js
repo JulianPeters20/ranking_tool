@@ -167,7 +167,11 @@ async function uploadVideo(entry, projectId) {
       status: {
         privacyStatus: 'private',
         publishAt: entry.scheduledAt,
-        selfDeclaredMadeForKids: !!entry.madeForKids
+        selfDeclaredMadeForKids: !!entry.madeForKids,
+        // Selbstauskunft "realistisches verändertes oder synthetisches
+        // Material" (YouTube Data API v3, bei videos.insert schreibbar).
+        // Betrifft hier vor allem Startscreens mit KI-Stimme.
+        containsSyntheticMedia: !!entry.containsSyntheticMedia
       }
     },
     media: {

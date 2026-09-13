@@ -287,6 +287,11 @@ Klicks pro Video.
 - "Made for Kids" (COPPA-Pflichtangabe) ist pro Video im Planer ankreuzbar,
   Standard ist "Nein" — die rechtliche Einordnung bleibt in deiner
   Verantwortung.
+- **"Verändertes oder synthetisches Material"** ebenfalls pro Video, Standard
+  "Nein" (setzt `status.containsSyntheticMedia` beim Upload). Gedacht für
+  Videos, deren Startscreen eine KI-Stimme benutzt, die nicht deine eigene
+  geklonte ist. Ein Klon der **eigenen** Stimme muss laut YouTube-Hilfe nicht
+  gekennzeichnet werden.
 
 ## Hinweis
 
