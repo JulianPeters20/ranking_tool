@@ -1,15 +1,23 @@
 ﻿<#
-Steuert die lokalen Webanwendungen: Ranking-Tool (Port 3000) und Voicebox
-(Backend-API 17493 + Weboberfläche 5173).
+Steuert die lokalen Anwendungen:
+  Ranking-Tool  Port 3000
+  Voicebox      Backend-API 17493 + Weboberfläche 5173
+  ComfyUI       Port 8188   (Generierungs-Engine für MiniMax H3)
+  h3-studio     Port 3100   (Videoerzeugung, braucht ComfyUI)
 
-  .\server.ps1 start   [all|ranking|voicebox] [-NoBrowser]
-  .\server.ps1 stop    [all|ranking|voicebox]
-  .\server.ps1 restart [all|ranking|voicebox] [-NoBrowser]
-  .\server.ps1 status  [all|ranking|voicebox]
+  .\server.ps1 start   [all|ranking|voicebox|comfyui|h3-studio|h3|alles] [-NoBrowser]
+  .\server.ps1 stop    [...]
+  .\server.ps1 restart [...]
+  .\server.ps1 status  [...]
+
+"all" umfasst bewusst NUR Ranking-Tool und Voicebox. ComfyUI belegt beim
+Laden rund 20 GB Arbeitsspeicher und fast das gesamte VRAM -- das soll nicht
+nebenbei passieren, wenn jemand nur das Ranking-Tool starten will. Die
+H3-Kette startet man gezielt mit "h3", oder mit "alles" zusammen mit dem Rest.
 
 Die Server laufen unsichtbar im Hintergrund weiter, auch wenn dieses Fenster
 geschlossen wird. Ihre Ausgaben landen in .run\<dienst>.log.
-Doppelklick-Varianten: "Server starten.cmd" / "Server stoppen.cmd".
+Doppelklick-Varianten: siehe die .cmd-Dateien im selben Ordner.
 #>
 param(
     [Parameter(Position = 0)]
@@ -17,7 +25,7 @@ param(
     [string]$Action = 'status',
 
     [Parameter(Position = 1)]
-    [ValidateSet('all', 'ranking', 'voicebox')]
+    [ValidateSet('all', 'alles', 'ranking', 'voicebox', 'comfyui', 'h3-studio', 'h3')]
     [string]$Target = 'all',
 
     [switch]$NoBrowser
@@ -26,8 +34,10 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $RepoRoot = $PSScriptRoot
-# Anpassen, falls Voicebox an einem anderen Ort liegt.
+# Anpassen, falls die Programme an einem anderen Ort liegen.
 $VoiceboxRoot = 'D:\Projects\voicebox'
+$ComfyRoot = 'D:\Projects\ComfyUI'
+$H3StudioRoot = 'D:\Projects\h3-studio'
 $RunDir = Join-Path $RepoRoot '.run'
 
 # Kind-Prozesse bevorzugt mit PowerShell 7 starten (UTF-8-Logdateien).
@@ -70,13 +80,50 @@ $Services = [ordered]@{
         Processes   = @('node', 'bun')
         Timeout     = 60
         OpenBrowser = $true
+        DependsOn   = 'voicebox-backend'   # ohne Backend ist die Oberfläche nutzlos
+    }
+    'comfyui'          = @{
+        Name        = 'ComfyUI'
+        Port        = 8188
+        Health      = 'http://127.0.0.1:8188/system_stats'
+        Url         = 'http://127.0.0.1:8188'
+        WorkDir     = $ComfyRoot
+        # --fast-disk gehoert dazu: hält die Modellgewichte aus dem anonymen
+        # Speicher heraus. Ohne das Flag ist der Arbeitsspeicher schneller voll.
+        Command     = "& '$ComfyRoot\.venv\Scripts\python.exe' main.py --fast-disk"
+        Requires    = Join-Path $ComfyRoot '.venv\Scripts\python.exe'
+        Processes   = @('python')
+        Timeout     = 180  # lädt Torch/CUDA und prüft die Modellordner
+        OpenBrowser = $false
+    }
+    'h3-studio'        = @{
+        Name        = 'h3-studio'
+        Port        = 3100
+        # Bewusst /api/characters statt /api/health: health liefert absichtlich
+        # 503, solange ComfyUI fehlt oder Modelle unvollständig sind. Hier soll
+        # nur geprüft werden, ob der Dienst überhaupt antwortet -- ob er
+        # generieren KANN, sagt "curl /api/health".
+        Health      = 'http://127.0.0.1:3100/api/characters'
+        Url         = 'http://127.0.0.1:3100/api/health'
+        WorkDir     = $H3StudioRoot
+        Command     = 'node server.js'
+        Requires    = Join-Path $H3StudioRoot 'node_modules'
+        Processes   = @('node')
+        Timeout     = 30
+        OpenBrowser = $false
+        DependsOn   = 'comfyui'            # ohne Engine kann es nichts erzeugen
     }
 }
 
 $Groups = @{
-    all      = @('ranking', 'voicebox-backend', 'voicebox-web')
-    ranking  = @('ranking')
-    voicebox = @('voicebox-backend', 'voicebox-web')
+    # "all" bleibt absichtlich bei Ranking-Tool und Voicebox -- siehe Kopf.
+    all         = @('ranking', 'voicebox-backend', 'voicebox-web')
+    alles       = @('ranking', 'voicebox-backend', 'voicebox-web', 'comfyui', 'h3-studio')
+    ranking     = @('ranking')
+    voicebox    = @('voicebox-backend', 'voicebox-web')
+    comfyui     = @('comfyui')
+    'h3-studio' = @('comfyui', 'h3-studio')   # h3-studio ohne Engine wäre sinnlos
+    h3          = @('comfyui', 'h3-studio')
 }
 
 function Write-Line([string]$Text, [string]$Color = 'Gray') {
@@ -234,17 +281,21 @@ function Invoke-Start([string[]]$Keys) {
     Write-Line 'Starte ...'
     $allOk = $true
     $toOpen = @()
-    $backendFailed = $false
+    # Welche Dienste sind fehlgeschlagen? Ein Dienst, dessen Voraussetzung
+    # nicht läuft, wird übersprungen statt sinnlos gestartet -- welcher von
+    # welchem abhängt, steht als DependsOn bei den Diensten selbst.
+    $failed = @{}
     foreach ($key in $Keys) {
-        # Die Voicebox-Oberflaeche ist ohne Backend nutzlos.
-        if ($key -eq 'voicebox-web' -and $backendFailed) {
-            Write-Line ('  {0,-24} übersprungen (Backend läuft nicht)' -f $Services[$key].Name) 'Yellow'
+        $needs = $Services[$key].DependsOn
+        if ($needs -and $failed.ContainsKey($needs)) {
+            Write-Line ('  {0,-24} übersprungen ({1} läuft nicht)' -f $Services[$key].Name, $Services[$needs].Name) 'Yellow'
+            $failed[$key] = $true
             continue
         }
         $ok = Start-AppService $key
         if (-not $ok) {
             $allOk = $false
-            if ($key -eq 'voicebox-backend') { $backendFailed = $true }
+            $failed[$key] = $true
         } elseif ($Services[$key].OpenBrowser -and -not $NoBrowser) {
             $toOpen += $Services[$key].Url
         }
