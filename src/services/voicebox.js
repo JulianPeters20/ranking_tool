@@ -55,6 +55,11 @@ async function getStatus() {
   return value;
 }
 
+// Nach Aenderungen an den Profilen nicht bis zu 15 s auf veraltete Daten warten.
+function invalidateStatus() {
+  statusCache = { at: 0, value: null };
+}
+
 async function readStatus() {
   try {
     await request('/health', {}, 2000);
@@ -72,7 +77,12 @@ async function readStatus() {
       available: true,
       profiles: (Array.isArray(profiles) ? profiles : []).map((profile) => ({
         id: profile.id,
-        name: profile.name || profile.display_name || profile.id
+        name: profile.name || profile.display_name || profile.id,
+        // Die Engine-Felder muessen mit durch: /generate setzt sonst seinen
+        // eigenen Default (siehe resolveEngine).
+        voiceType: profile.voice_type || 'cloned',
+        presetEngine: profile.preset_engine || null,
+        defaultEngine: profile.default_engine || null
       }))
     };
   } catch (err) {
@@ -122,12 +132,58 @@ async function waitForCompletion(generationId) {
   throw new Error('Voicebox hat die Erzeugung nicht abgeschlossen.');
 }
 
+/**
+ * Bestimmt die Engine, mit der ein Profil erzeugt werden muss.
+ *
+ * Voicebox setzt fuer /generate den Default `engine: "qwen"`, wenn das Feld
+ * fehlt. Preset-Profile akzeptieren aber ausschliesslich ihre eigene
+ * `preset_engine` -- ein Kokoro-Profil scheitert sonst mit HTTP 400
+ * ("only supports engine 'kokoro', not 'qwen'"). Geklonte Profile fielen nie
+ * auf, weil fuer sie der Default passt.
+ *
+ * Rueckgabe `undefined` heisst bewusst: kein Feld mitschicken, Voicebox
+ * entscheidet selbst.
+ */
+function resolveEngine(profile) {
+  if (!profile) return undefined;
+  if (profile.voiceType === 'preset') {
+    if (!profile.presetEngine) {
+      throw new Error(
+        `Das Profil "${profile.name || profile.id}" ist als Preset angelegt, nennt aber keine Engine. In Voicebox prüfen.`
+      );
+    }
+    return profile.presetEngine;
+  }
+  return profile.defaultEngine || undefined;
+}
+
 // Erzeugt die Sprachaufnahme und legt sie unter targetPath ab.
 async function generateSpeech({ text, profileId, language = 'en' }, targetPath) {
+  // Das Profil aus dem (zwischengespeicherten) Status holen, um die richtige
+  // Engine mitzuschicken. Der Aufrufer soll davon nichts wissen muessen.
+  let status = await getStatus();
+  let profile = status.profiles.find((p) => p.id === profileId);
+  if (!profile) {
+    // Profil koennte neu sein und der Cache veraltet -- einmal frisch nachsehen.
+    invalidateStatus();
+    status = await getStatus();
+    profile = status.profiles.find((p) => p.id === profileId);
+  }
+  if (!profile) {
+    throw new Error(`Voicebox kennt kein Profil mit der ID "${profileId}".`);
+  }
+
+  const engine = resolveEngine(profile);
+
   const startRes = await request('/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profile_id: profileId, text, language })
+    body: JSON.stringify({
+      profile_id: profileId,
+      text,
+      language,
+      ...(engine ? { engine } : {})
+    })
   }, 60000);
   const generation = await startRes.json();
   if (!generation || !generation.id) throw new Error('Voicebox hat keine Vorgangs-ID zurückgegeben.');
@@ -143,4 +199,4 @@ async function generateSpeech({ text, profileId, language = 'en' }, targetPath) 
   return { generationId: generation.id, bytes: buffer.length };
 }
 
-module.exports = { getStatus, generateSpeech, BASE_URL };
+module.exports = { getStatus, invalidateStatus, resolveEngine, generateSpeech, BASE_URL };
