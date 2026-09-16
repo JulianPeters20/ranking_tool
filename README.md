@@ -47,7 +47,13 @@ data/emoji-cache/             Emoji-Bilder (für alle Projekte)
   die YouTube-Verbindung dieses Projekts endgültig.
 - Für einen neuen Kanal: Projekt anlegen, in den **YouTube Planer** wechseln und
   dort einmal **"Mit YouTube verbinden"** klicken — dabei im Google-Dialog den
-  zum Projekt gehörenden Kanal auswählen.
+  zum Projekt gehörenden Kanal auswählen. Client-ID/Secret sind schon
+  hinterlegt, ein zweites Google-Cloud-Projekt ist **nicht** nötig. Die
+  Kontoauswahl wird dabei immer erzwungen (`prompt=select_account consent`),
+  damit bei mehreren Kanälen an einem Google-Konto nicht der gerade
+  eingeloggte genommen wird.
+- Achtung: Das Token wird an das Projekt gebunden, das beim Klick **aktiv**
+  ist. Vorher in der Projektleiste prüfen.
 - Geplante Uploads laufen projektübergreifend weiter: Der Retry beim Start und
   alle 5 Minuten prüft alle Projekte, egal welches gerade geöffnet ist.
 - Während eines Renders sind Projektwechsel und Löschen gesperrt.

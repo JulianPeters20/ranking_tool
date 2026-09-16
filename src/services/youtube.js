@@ -100,7 +100,12 @@ function getAuthUrl(projectId) {
   pendingOAuth = { state: crypto.randomBytes(16).toString('hex'), projectId: id };
   return client.generateAuthUrl({
     access_type: 'offline',
-    prompt: 'consent',
+    // 'consent' erzwingt den Zustimmungsdialog (und damit ein Refresh-Token).
+    // 'select_account' zusaetzlich die Konto-/Kanalauswahl: Ein Google-Konto
+    // kann mehrere YouTube-Kanaele besitzen, und ohne diese Aufforderung
+    // nimmt Google je nach Anmeldestand einfach den gerade aktiven -- bei
+    // einem Projekt pro Kanal landet das Token dann am falschen Kanal.
+    prompt: 'select_account consent',
     scope: [UPLOAD_SCOPE],
     state: pendingOAuth.state
   });
