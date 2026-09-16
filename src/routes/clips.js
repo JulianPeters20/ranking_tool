@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { loadClips, saveClips, loadSettings, saveSettings, getActiveProjectId, getProjectDir } = require('../services/state');
+const { loadClips, saveClips, loadSettings, saveSettings, getActiveProjectId, getProjectDir, INTRO_POSITIONS } = require('../services/state');
 const { probeDuration } = require('../services/ffmpeg');
 const voicebox = require('../services/voicebox');
 const { fetchMetadata, downloadClip, removeClipFiles, removeDownloadedFiles } = require('../services/downloader');
@@ -321,6 +321,9 @@ router.put('/settings', (req, res) => {
       duration: typeof intro.duration === 'number' && Number.isFinite(intro.duration)
         ? Math.min(10, Math.max(1, intro.duration))
         : current.duration,
+      // Vor Clip 1 oder erst danach (Clip 1 als Hook). Unbekannte Werte
+      // lassen die bisherige Einstellung stehen.
+      position: INTRO_POSITIONS.includes(intro.position) ? intro.position : current.position,
       voice: current.voice
     };
     if (typeof intro.voiceVolume === 'number' && settings.intro.voice) {

@@ -395,12 +395,22 @@ function buildIntroLayers(settings, emojiImages) {
   return { drawtexts, overlays };
 }
 
-// Der Vorspann nutzt den ersten Clip als Hintergrund: formatfuellend
-// zugeschnitten, weichgezeichnet und leicht abgedunkelt.
-async function renderIntro(firstClip, settings, emojiImages) {
+// An welcher Stelle der Clipliste der Startscreen eingeschoben wird: vor
+// Clip 1 (Index 0) oder -- als Hook-Variante -- erst nach Clip 1 (Index 1).
+// Nach dem ersten Clip braucht es einen zweiten als Hintergrund; mit nur
+// einem Clip bleibt der Startscreen deshalb vorne.
+function introInsertIndex(settings, clipCount) {
+  const position = settings.intro && settings.intro.position;
+  return position === 'afterFirst' && clipCount >= 2 ? 1 : 0;
+}
+
+// Der Vorspann nutzt den Clip als Hintergrund, der direkt nach ihm laeuft
+// (Clip 1 oder Clip 2, siehe introInsertIndex): formatfuellend zugeschnitten,
+// weichgezeichnet und leicht abgedunkelt.
+async function renderIntro(backgroundClip, settings, emojiImages) {
   const duration = introDuration(settings);
   const outputPath = path.join(tmpDir, 'intro.mp4');
-  const inputPath = path.join(projectDir, firstClip.filePath);
+  const inputPath = path.join(projectDir, backgroundClip.filePath);
   const voice = settings.intro && settings.intro.voice;
   const voicePath = voice && voice.filePath ? path.join(projectDir, voice.filePath) : null;
 
@@ -418,7 +428,7 @@ async function renderIntro(firstClip, settings, emojiImages) {
   ].join(',');
 
   const inputArgs = [];
-  if (Number(firstClip.trimStart) > 0) inputArgs.push('-ss', String(firstClip.trimStart));
+  if (Number(backgroundClip.trimStart) > 0) inputArgs.push('-ss', String(backgroundClip.trimStart));
   inputArgs.push('-i', inputPath);
   // Ton: entweder die vorgelesene Stimme oder Stille -- in jedem Fall eine
   // Tonspur, sonst scheitert der verlustfreie Concat mit den Clips.
@@ -581,13 +591,18 @@ function startRender(clipsWithRank, settings, projectId) {
       const titleLayers = buildTitleLayers(settings, emojiImages);
 
       const tmpFiles = [];
-      // Optionaler Startscreen vor dem ersten Clip.
-      if (settings.intro && settings.intro.enabled) {
-        tmpFiles.push(await renderIntro(clipsWithRank[0], settings, emojiImages));
-      }
-      for (const clip of clipsWithRank) {
-        const tmpFile = await renderSingleClip(clip, clipsWithRank, titleLayers, emojiImages);
-        tmpFiles.push(tmpFile);
+      // Optionaler Startscreen: wird direkt vor dem Clip eingeschoben, der
+      // danach laeuft und zugleich sein Hintergrund ist -- Clip 1 oder, wenn
+      // Clip 1 als Hook zuerst laufen soll, Clip 2. Die Rangliste haengt an
+      // der Clip-Reihenfolge und bleibt davon unberuehrt.
+      const introIndex = settings.intro && settings.intro.enabled
+        ? introInsertIndex(settings, clipsWithRank.length)
+        : -1;
+      for (const [index, clip] of clipsWithRank.entries()) {
+        if (index === introIndex) {
+          tmpFiles.push(await renderIntro(clip, settings, emojiImages));
+        }
+        tmpFiles.push(await renderSingleClip(clip, clipsWithRank, titleLayers, emojiImages));
       }
       const outputFile = await concatClips(tmpFiles);
       // Fertiges Video in die Bibliothek fuer den YouTube-Planer aufnehmen,

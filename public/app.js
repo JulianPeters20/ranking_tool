@@ -310,6 +310,7 @@ function renderList() {
   listEmptyEl.hidden = clips.length > 0;
   updateResetButton();
   updateTotalDuration();
+  updateIntroPlacementText();
 
   for (const clip of clips) {
     const li = document.createElement('li');
@@ -666,6 +667,9 @@ titleSizeEl.addEventListener('change', updateTitleStyle);
 const introEls = {
   section: document.querySelector('.intro-section'),
   enabled: document.getElementById('intro-enabled'),
+  position: document.getElementById('intro-position'),
+  positionHint: document.getElementById('intro-position-hint'),
+  description: document.getElementById('intro-description'),
   duration: document.getElementById('intro-duration'),
   profile: document.getElementById('intro-voice-profile'),
   language: document.getElementById('intro-voice-language'),
@@ -677,7 +681,7 @@ const introEls = {
   audio: document.getElementById('intro-voice-audio')
 };
 
-let intro = { enabled: false, duration: 2, voice: null };
+let intro = { enabled: false, duration: 2, position: 'start', voice: null };
 let voiceboxState = { available: false, profiles: [] };
 
 // Die tatsaechliche Laenge richtet sich nach der Sprachaufnahme, mindestens
@@ -687,9 +691,30 @@ function introLength() {
   return Math.max(2, Number(intro.duration) || 2, voiceLength);
 }
 
+// Ueberschrift und Beschreibung folgen der gewaehlten Position. Haengt auch
+// an der Clipanzahl (nach Clip 1 braucht es einen zweiten als Hintergrund),
+// deshalb ruft renderList() das ebenfalls auf -- ohne renderIntroSection()
+// komplett neu zu zeichnen, das wuerde eine laufende Hoerprobe abbrechen.
+function updateIntroPlacementText() {
+  const afterFirst = intro.position === 'afterFirst';
+  introEls.positionHint.textContent = afterFirst
+    ? '(optional, läuft nach dem ersten Clip)'
+    : '(optional, läuft vor dem ersten Clip)';
+
+  let text = afterFirst
+    ? 'Clip 1 läuft zuerst als Hook, danach erscheint der Gesamttitel groß und mittig über dem weichgezeichneten zweiten Clip.'
+    : 'Der Gesamttitel erscheint groß und mittig über dem weichgezeichneten ersten Clip.';
+  if (afterFirst && clips.length === 1) {
+    text += ' Mit nur einem Clip gibt es keinen zweiten als Hintergrund – der Startscreen läuft dann vor dem Clip.';
+  }
+  introEls.description.textContent = `${text} Mit Stimme richtet sich die Länge automatisch nach der Aufnahme.`;
+}
+
 function renderIntroSection() {
   introEls.enabled.checked = !!intro.enabled;
+  introEls.position.value = intro.position === 'afterFirst' ? 'afterFirst' : 'start';
   introEls.duration.value = intro.duration ?? 2;
+  updateIntroPlacementText();
   introEls.section.classList.toggle('is-disabled', !intro.enabled);
 
   if (introEls.profile.dataset.count !== String(voiceboxState.profiles.length)) {
@@ -733,6 +758,12 @@ introEls.enabled.addEventListener('change', async () => {
   intro.enabled = introEls.enabled.checked;
   renderIntroSection();
   await sendJson('/api/settings', 'PUT', { intro: { enabled: intro.enabled } });
+});
+
+introEls.position.addEventListener('change', async () => {
+  intro.position = introEls.position.value;
+  renderIntroSection();
+  await sendJson('/api/settings', 'PUT', { intro: { position: intro.position } });
 });
 
 introEls.duration.addEventListener('change', async () => {

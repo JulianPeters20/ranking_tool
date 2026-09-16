@@ -150,6 +150,13 @@ schalten: Der Gesamttitel erscheint groß und mittig über dem
 weichgezeichneten ersten Clip, danach läuft direkt Clip 1.
 
 - **Ein/Aus** per Häkchen, **Mindestdauer** einstellbar (1–10 s, Standard 2 s).
+- **Position:** *Vor dem ersten Clip* (Standard) oder *Nach dem ersten Clip*.
+  Bei der zweiten Variante läuft Clip 1 zuerst als Hook, danach kommt der
+  Startscreen mit Titel und Stimme, dann der Rest. Der Hintergrund ist immer
+  der Clip, der direkt nach dem Startscreen läuft — vorne also Clip 1, nach
+  dem Hook Clip 2. Mit nur einem Clip gibt es keinen zweiten Hintergrund; der
+  Startscreen läuft dann vorne. Die Position bleibt beim „Ranking
+  zurücksetzen" erhalten, wie Schriftart und -größe.
 - Optional liest deine **Voicebox-Stimme** einen Text vor. Dann richtet sich die
   Länge automatisch nach der Aufnahme (Aufnahme + 0,4 s, mindestens die
   eingestellte Dauer), und der Startscreen wird automatisch aktiviert.

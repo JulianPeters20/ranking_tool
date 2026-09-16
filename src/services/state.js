@@ -27,10 +27,16 @@ const DEFAULT_SETTINGS = {
   titleFont: 'arial',
   titleFontSize: 62,
   titleWordColors: {},
-  // Optionaler Startscreen vor dem ersten Clip: Titel gross und mittig ueber
-  // dem weichgezeichneten ersten Clip, wahlweise mit vorgelesenem Text.
-  intro: { enabled: false, duration: 2, voice: null }
+  // Optionaler Startscreen: Titel gross und mittig ueber einem
+  // weichgezeichneten Clip, wahlweise mit vorgelesenem Text.
+  // position 'start' = vor dem ersten Clip, 'afterFirst' = Clip 1 laeuft als
+  // Hook zuerst, danach der Startscreen (siehe INTRO_POSITIONS).
+  intro: { enabled: false, duration: 2, position: 'start', voice: null }
 };
+
+// Wo der Startscreen im Video sitzen kann. Der Hintergrund ist in beiden
+// Faellen der Clip, der direkt nach dem Startscreen laeuft.
+const INTRO_POSITIONS = ['start', 'afterFirst'];
 
 // Erst in eine Temp-Datei schreiben, dann umbenennen: Ein Absturz mitten im
 // Schreiben hinterlaesst so nie eine halb geschriebene JSON-Datei, die
@@ -199,7 +205,15 @@ function saveClips(clips, projectId) {
 // von der Clip-Liste, da sie nicht pro Clip, sondern einmal fuers ganze Video
 // gelten.
 function loadSettings(projectId) {
-  return { ...DEFAULT_SETTINGS, ...readJson(path.join(getProjectDir(projectId), 'settings.json'), {}) };
+  const stored = readJson(path.join(getProjectDir(projectId), 'settings.json'), {});
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    // intro eine Ebene tiefer zusammenfuehren: aeltere settings.json kennen
+    // z.B. noch kein intro.position -- ohne das bliebe es undefined statt
+    // auf den Standard 'start' zu fallen.
+    intro: { ...DEFAULT_SETTINGS.intro, ...(stored.intro || {}) }
+  };
 }
 
 function saveSettings(settings, projectId) {
@@ -208,6 +222,7 @@ function saveSettings(settings, projectId) {
 
 module.exports = {
   DATA_DIR,
+  INTRO_POSITIONS,
   writeJsonAtomic,
   readJson,
   listProjects,
