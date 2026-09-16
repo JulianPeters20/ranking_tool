@@ -4,6 +4,8 @@ node_modules/
 data/projects/*/clips/
 data/projects/*/output/
 data/projects/*/cut/
+# Startscreen-Stimme aus Voicebox (intro/voice.wav) -- erzeugtes Audio, wie cut/.
+data/projects/*/intro/
 data/projects/*/youtube_token.json
 
 # Altes Layout vor dem Mehrprojekt-Umbau (wird beim Start migriert).
