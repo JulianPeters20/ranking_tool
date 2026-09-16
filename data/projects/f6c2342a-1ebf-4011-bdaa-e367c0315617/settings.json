@@ -1,14 +1,22 @@
 {
-  "title": "Ranking Best Trampoline Fails",
+  "title": "Ranking the Best Pool Fails 🏊‍♂️",
   "titleFont": "arial",
   "titleFontSize": 62,
   "titleWordColors": {
     "2": "#fff700",
-    "3": "#f50000"
+    "3": "#f60404"
   },
   "intro": {
-    "enabled": false,
+    "enabled": true,
     "duration": 2,
-    "voice": null
+    "voice": {
+      "text": "Today we will watch the best Pool Fails! Number One is so funny!",
+      "profileId": "8d97b9ee-84be-4086-9b13-10be9a6f619d",
+      "language": "en",
+      "filePath": "intro/voice.wav",
+      "volume": 1,
+      "duration": 4.425,
+      "createdAt": "2026-09-16T20:35:05.937Z"
+    }
   }
 }

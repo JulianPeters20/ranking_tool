@@ -1,0 +1,11 @@
+{
+  "title": "",
+  "titleFont": "arial",
+  "titleFontSize": 62,
+  "titleWordColors": {},
+  "intro": {
+    "enabled": false,
+    "duration": 2,
+    "voice": null
+  }
+}

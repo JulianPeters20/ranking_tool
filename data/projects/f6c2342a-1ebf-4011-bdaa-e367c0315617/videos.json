@@ -1,5 +1,467 @@
 [
   {
+    "id": "997b5a56-83b3-45ba-8d49-a1d3f693174b",
+    "filePath": "output/final_1789590915588.mp4",
+    "thumbnailPath": "output/thumbnails/997b5a56-83b3-45ba-8d49-a1d3f693174b.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@malorielynn14",
+        "profileUrl": "https://www.tiktok.com/@malorielynn14",
+        "url": "https://www.tiktok.com/@malorielynn14/video/6702952481954991366?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@alvaroandrevlogs",
+        "profileUrl": "https://www.tiktok.com/@alvaroandrevlogs",
+        "url": "https://www.tiktok.com/@alvaroandrevlogs/video/6965976985151507718?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@oddballs",
+        "profileUrl": "https://www.tiktok.com/@oddballs",
+        "url": "https://www.tiktok.com/@oddballs/video/6931580550515821830?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@nkirby_00",
+        "profileUrl": "https://www.tiktok.com/@nkirby_00",
+        "url": "https://www.tiktok.com/@nkirby_00/video/7647806341192437022?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@karencolbourne852",
+        "profileUrl": "https://www.tiktok.com/@karencolbourne852",
+        "url": "https://www.tiktok.com/@karencolbourne852/video/7000076011798859013?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T20:35:15.875Z",
+    "youtubeTitle": "",
+    "youtubeDescription": "",
+    "tags": [],
+    "madeForKids": false,
+    "containsSyntheticMedia": false,
+    "scheduledAt": null,
+    "uploadStatus": "draft",
+    "youtubeVideoId": null,
+    "error": null
+  },
+  {
+    "id": "95fe3e69-198a-4e19-9e4a-94503eb54847",
+    "filePath": "output/final_1789590889764.mp4",
+    "thumbnailPath": "output/thumbnails/95fe3e69-198a-4e19-9e4a-94503eb54847.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@malorielynn14",
+        "profileUrl": "https://www.tiktok.com/@malorielynn14",
+        "url": "https://www.tiktok.com/@malorielynn14/video/6702952481954991366?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@alvaroandrevlogs",
+        "profileUrl": "https://www.tiktok.com/@alvaroandrevlogs",
+        "url": "https://www.tiktok.com/@alvaroandrevlogs/video/6965976985151507718?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@oddballs",
+        "profileUrl": "https://www.tiktok.com/@oddballs",
+        "url": "https://www.tiktok.com/@oddballs/video/6931580550515821830?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@nkirby_00",
+        "profileUrl": "https://www.tiktok.com/@nkirby_00",
+        "url": "https://www.tiktok.com/@nkirby_00/video/7647806341192437022?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@karencolbourne852",
+        "profileUrl": "https://www.tiktok.com/@karencolbourne852",
+        "url": "https://www.tiktok.com/@karencolbourne852/video/7000076011798859013?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T20:34:50.050Z",
+    "youtubeTitle": "",
+    "youtubeDescription": "",
+    "tags": [],
+    "madeForKids": false,
+    "containsSyntheticMedia": false,
+    "scheduledAt": null,
+    "uploadStatus": "draft",
+    "youtubeVideoId": null,
+    "error": null
+  },
+  {
+    "id": "353201dc-5fcd-409f-81e8-99776c793d06",
+    "filePath": "output/final_1789590868071.mp4",
+    "thumbnailPath": "output/thumbnails/353201dc-5fcd-409f-81e8-99776c793d06.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@malorielynn14",
+        "profileUrl": "https://www.tiktok.com/@malorielynn14",
+        "url": "https://www.tiktok.com/@malorielynn14/video/6702952481954991366?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@alvaroandrevlogs",
+        "profileUrl": "https://www.tiktok.com/@alvaroandrevlogs",
+        "url": "https://www.tiktok.com/@alvaroandrevlogs/video/6965976985151507718?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@oddballs",
+        "profileUrl": "https://www.tiktok.com/@oddballs",
+        "url": "https://www.tiktok.com/@oddballs/video/6931580550515821830?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@nkirby_00",
+        "profileUrl": "https://www.tiktok.com/@nkirby_00",
+        "url": "https://www.tiktok.com/@nkirby_00/video/7647806341192437022?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@karencolbourne852",
+        "profileUrl": "https://www.tiktok.com/@karencolbourne852",
+        "url": "https://www.tiktok.com/@karencolbourne852/video/7000076011798859013?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T20:34:28.349Z",
+    "youtubeTitle": "",
+    "youtubeDescription": "",
+    "tags": [],
+    "madeForKids": false,
+    "containsSyntheticMedia": false,
+    "scheduledAt": null,
+    "uploadStatus": "draft",
+    "youtubeVideoId": null,
+    "error": null
+  },
+  {
+    "id": "74dfea31-d8a9-4607-9b3a-236818c96782",
+    "filePath": "output/final_1789567805681.mp4",
+    "thumbnailPath": "output/thumbnails/74dfea31-d8a9-4607-9b3a-236818c96782.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@thomas_johnson_",
+        "profileUrl": "https://www.tiktok.com/@thomas_johnson_",
+        "url": "https://www.tiktok.com/@thomas_johnson_/video/6922268031376837893?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@putch8",
+        "profileUrl": "https://www.tiktok.com/@putch8",
+        "url": "https://www.tiktok.com/@putch8/video/6975646761230535942?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@beauthebricky",
+        "profileUrl": "https://www.tiktok.com/@beauthebricky",
+        "url": "https://www.tiktok.com/@beauthebricky/video/6794992850217061638?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@idealflooring",
+        "profileUrl": "https://www.tiktok.com/@idealflooring",
+        "url": "https://www.tiktok.com/@idealflooring/video/6854787523781201158?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@alecpaintsofficial",
+        "profileUrl": "https://www.tiktok.com/@alecpaintsofficial",
+        "url": "https://www.tiktok.com/@alecpaintsofficial/video/7002383298693467397?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@aldrichlandscape",
+        "profileUrl": "https://www.tiktok.com/@aldrichlandscape",
+        "url": "https://www.tiktok.com/@aldrichlandscape/video/6868589417318075653?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T14:10:06.015Z",
+    "youtubeTitle": "Ranking the Best Construction Moments 🧱",
+    "youtubeDescription": "Ranking the Best Construction Moments 👨‍🎨🧱\n\nCredits:\n@thomas_johnson_ – https://www.tiktok.com/@thomas_johnson_\n@putch8 – https://www.tiktok.com/@putch8\n@beauthebricky – https://www.tiktok.com/@beauthebricky\n@idealflooring – https://www.tiktok.com/@idealflooring\n@alecpaintsofficial – https://www.tiktok.com/@alecpaintsofficial\n@aldrichlandscape – https://www.tiktok.com/@aldrichlandscape",
+    "tags": [
+      "viral",
+      "satisfying",
+      "shorts",
+      "construction"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-17T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "hluo6iMqxu4",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
+    "id": "1abb75fc-bff9-4087-af47-649e0198eed7",
+    "filePath": "output/final_1789555091986.mp4",
+    "thumbnailPath": "output/thumbnails/1abb75fc-bff9-4087-af47-649e0198eed7.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@afvofficial",
+        "profileUrl": "https://www.tiktok.com/@afvofficial",
+        "url": "https://www.tiktok.com/@afvofficial/video/6824312757987314949?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@houseofhighlights",
+        "profileUrl": "https://www.tiktok.com/@houseofhighlights",
+        "url": "https://www.tiktok.com/@houseofhighlights/video/7430530177492553006?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@eldavoce",
+        "profileUrl": "https://www.tiktok.com/@eldavoce",
+        "url": "https://www.tiktok.com/@eldavoce/video/7465161722949635350?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@sarahodonnell.04",
+        "profileUrl": "https://www.tiktok.com/@sarahodonnell.04",
+        "url": "https://www.tiktok.com/@sarahodonnell.04/video/7678046841107254550?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@trickshotsprodigy",
+        "profileUrl": "https://www.tiktok.com/@trickshotsprodigy",
+        "url": "https://www.tiktok.com/@trickshotsprodigy/video/7160679811566947585?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T10:38:12.286Z",
+    "youtubeTitle": "Ranking the Best Bowling Moments 🎳",
+    "youtubeDescription": "Ranking the Best Bowling Moments 🎳\n\nCredits:\n@afvofficial – https://www.tiktok.com/@afvofficial\n@houseofhighlights – https://www.tiktok.com/@houseofhighlights\n@eldavoce – https://www.tiktok.com/@eldavoce\n@sarahodonnell.04 – https://www.tiktok.com/@sarahodonnell.04\n@trickshotsprodigy – https://www.tiktok.com/@trickshotsprodigy",
+    "tags": [
+      "viral",
+      "bowling",
+      "funny",
+      "fails",
+      "shorts"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-16T14:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "mkKrdv40eLI",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
+    "id": "f87bcc36-5908-43aa-a1f7-948ec0c64a23",
+    "filePath": "output/final_1789551790663.mp4",
+    "thumbnailPath": "output/thumbnails/f87bcc36-5908-43aa-a1f7-948ec0c64a23.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@toothlessbabyboy",
+        "profileUrl": "https://www.tiktok.com/@toothlessbabyboy",
+        "url": "https://www.tiktok.com/@toothlessbabyboy/video/7557888899037596959?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@nekodaphillips",
+        "profileUrl": "https://www.tiktok.com/@nekodaphillips",
+        "url": "https://www.tiktok.com/@nekodaphillips/video/7605489064644545823?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@winwinrescue",
+        "profileUrl": "https://www.tiktok.com/@winwinrescue",
+        "url": "https://www.tiktok.com/@winwinrescue/video/7293203958007418154?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@pawliox",
+        "profileUrl": "https://www.tiktok.com/@pawliox",
+        "url": "https://www.tiktok.com/@pawliox/video/7597922346590113056?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@dog83682",
+        "profileUrl": "https://www.tiktok.com/@dog83682",
+        "url": "https://www.tiktok.com/@dog83682/video/7440948564383108383?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@catbagg",
+        "profileUrl": "https://www.tiktok.com/@catbagg",
+        "url": "https://www.tiktok.com/@catbagg/video/7257092803048508715?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-16T09:43:10.957Z",
+    "youtubeTitle": "Ranking the Best Cat Costumes 🐈",
+    "youtubeDescription": "Ranking the Best Cat Costumes 😸\n\nCredits:\n@toothlessbabyboy – https://www.tiktok.com/@toothlessbabyboy\n@nekodaphillips – https://www.tiktok.com/@nekodaphillips\n@winwinrescue – https://www.tiktok.com/@winwinrescue\n@pawliox – https://www.tiktok.com/@pawliox\n@dog83682 – https://www.tiktok.com/@dog83682\n@catbagg – https://www.tiktok.com/@catbagg",
+    "tags": [
+      "viral",
+      "shorts",
+      "cat",
+      "costumes",
+      "catcostumes",
+      "feed"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-16T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "N_H-62Zcjtk",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
+    "id": "600e2929-6f6f-4331-81a8-8a4ed6757765",
+    "filePath": "output/final_1789479088726.mp4",
+    "thumbnailPath": "output/thumbnails/600e2929-6f6f-4331-81a8-8a4ed6757765.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@fivestarorder",
+        "profileUrl": "https://www.tiktok.com/@fivestarorder",
+        "url": "https://www.tiktok.com/@fivestarorder/video/7671125818625543454?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@lakemyers112",
+        "profileUrl": "https://www.tiktok.com/@lakemyers112",
+        "url": "https://www.tiktok.com/@lakemyers112/video/7604692969572125983?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@hypermazee",
+        "profileUrl": "https://www.tiktok.com/@hypermazee",
+        "url": "https://www.tiktok.com/@hypermazee/video/7606837856350293270?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@lukasmbetz",
+        "profileUrl": "https://www.tiktok.com/@lukasmbetz",
+        "url": "https://www.tiktok.com/@lukasmbetz/video/7677966863594261793?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@savjoyfit",
+        "profileUrl": "https://www.tiktok.com/@savjoyfit",
+        "url": "https://www.tiktok.com/@savjoyfit/video/7436575043842215210?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@madily_n.grace",
+        "profileUrl": "https://www.tiktok.com/@madily_n.grace",
+        "url": "https://www.tiktok.com/@madily_n.grace/video/7549217217418628366?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-15T13:31:29.034Z",
+    "youtubeTitle": "Ranking the Worst Aura Loss Moments 😣",
+    "youtubeDescription": "Ranking the worst Aura Loss Moments 😶\n\nCredits:\n@fivestarorder – https://www.tiktok.com/@fivestarorder\n@lakemyers112 – https://www.tiktok.com/@lakemyers112\n@hypermazee – https://www.tiktok.com/@hypermazee\n@lukasmbetz – https://www.tiktok.com/@lukasmbetz\n@savjoyfit – https://www.tiktok.com/@savjoyfit\n@madily_n.grace – https://www.tiktok.com/@madily_n.grace",
+    "tags": [
+      "viral",
+      "auraloss",
+      "shorts",
+      "feed",
+      "cringe"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-16T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "SgVetv6mo80",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
+    "id": "7b5572f4-adab-4908-841f-cf9232fc2009",
+    "filePath": "output/final_1789471679504.mp4",
+    "thumbnailPath": "output/thumbnails/7b5572f4-adab-4908-841f-cf9232fc2009.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@15sof",
+        "profileUrl": "https://www.tiktok.com/@15sof",
+        "url": "https://www.tiktok.com/@15sof/video/6954014754902002950?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@thatsjustunreal",
+        "profileUrl": "https://www.tiktok.com/@thatsjustunreal",
+        "url": "https://www.tiktok.com/@thatsjustunreal/video/6947383048656735493?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@fhd_edit",
+        "profileUrl": "https://www.tiktok.com/@fhd_edit",
+        "url": "https://www.tiktok.com/@fhd_edit/video/7620104552104217878?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@hulett_brothers",
+        "profileUrl": "https://www.tiktok.com/@hulett_brothers",
+        "url": "https://www.tiktok.com/@hulett_brothers/video/7208599170976910634?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@dudeperfect",
+        "profileUrl": "https://www.tiktok.com/@dudeperfect",
+        "url": "https://www.tiktok.com/@dudeperfect/video/7057335942360632622?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-15T11:27:59.804Z",
+    "youtubeTitle": "Ranking the Best Trickshots 🤯",
+    "youtubeDescription": "Ranking the Best Trickshots 🤯\n\nCredits:\n@15sof – https://www.tiktok.com/@15sof\n@thatsjustunreal – https://www.tiktok.com/@thatsjustunreal\n@fhd_edit – https://www.tiktok.com/@fhd_edit\n@hulett_brothers – https://www.tiktok.com/@hulett_brothers\n@dudeperfect – https://www.tiktok.com/@dudeperfect",
+    "tags": [
+      "viral",
+      "shorts",
+      "trickshots",
+      "amazing"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-15T14:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "16gpkO0i-zs",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
+    "id": "7a0d00ab-a02d-404e-a59a-294318e04979",
+    "filePath": "output/final_1789461549952.mp4",
+    "thumbnailPath": "output/thumbnails/7a0d00ab-a02d-404e-a59a-294318e04979.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@michaelboyyd",
+        "profileUrl": "https://www.tiktok.com/@michaelboyyd",
+        "url": "https://www.tiktok.com/@michaelboyyd/video/7255523264271797546?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@animalsdoingthings",
+        "profileUrl": "https://www.tiktok.com/@animalsdoingthings",
+        "url": "https://www.tiktok.com/@animalsdoingthings/video/6757522188066131205?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@bert.thegoat",
+        "profileUrl": "https://www.tiktok.com/@bert.thegoat",
+        "url": "https://www.tiktok.com/@bert.thegoat/video/7166940486253464838?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@ducks_in_space",
+        "profileUrl": "https://www.tiktok.com/@ducks_in_space",
+        "url": "https://www.tiktok.com/@ducks_in_space/video/7130293580941528366?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@sprinklestheweenie",
+        "profileUrl": "https://www.tiktok.com/@sprinklestheweenie",
+        "url": "https://www.tiktok.com/@sprinklestheweenie/video/7141766867760205102?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@cats_friii",
+        "profileUrl": "https://www.tiktok.com/@cats_friii",
+        "url": "https://www.tiktok.com/@cats_friii/video/7166369485220220165?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@saradelores",
+        "profileUrl": "https://www.tiktok.com/@saradelores",
+        "url": "https://www.tiktok.com/@saradelores/video/7633201772323949838?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-15T08:39:10.291Z",
+    "youtubeTitle": "Ranking the Best Sleepy Animals 🐈💤",
+    "youtubeDescription": "Ranking the Best Sleepy Animals 💤😍\n\nCredits:\n@michaelboyyd – https://www.tiktok.com/@michaelboyyd\n@animalsdoingthings – https://www.tiktok.com/@animalsdoingthings\n@bert.thegoat – https://www.tiktok.com/@bert.thegoat\n@ducks_in_space – https://www.tiktok.com/@ducks_in_space\n@sprinklestheweenie – https://www.tiktok.com/@sprinklestheweenie\n@cats_friii – https://www.tiktok.com/@cats_friii\n@saradelores – https://www.tiktok.com/@saradelores",
+    "tags": [
+      "viral",
+      "shorts",
+      "sleepyanimals",
+      "funny",
+      "cute"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": "2026-09-15T10:00:00.000Z",
+    "uploadStatus": "scheduled_on_youtube",
+    "youtubeVideoId": "NStYe_SXmW4",
+    "error": null,
+    "uploadAttempts": 1
+  },
+  {
     "id": "2af0ff45-1744-4323-ab85-3faa0dc037d7",
     "filePath": "output/final_1789211343037.mp4",
     "thumbnailPath": "output/thumbnails/2af0ff45-1744-4323-ab85-3faa0dc037d7.jpg",
