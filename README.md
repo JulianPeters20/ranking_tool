@@ -63,21 +63,42 @@ Projekt namens "Ranking Clips" verschoben.
 
 ### Starten und Stoppen per Skript
 
-Statt `npm start` in einem offenen Terminal lassen sich das Ranking-Tool und
-(falls eingerichtet) Voicebox im Hintergrund steuern — per Doppelklick auf
-**`Server starten.cmd`** / **`Server stoppen.cmd`** oder im Terminal:
+Statt `npm start` in einem offenen Terminal lassen sich alle Dienste im
+Hintergrund steuern. Für jeden gibt es ein Paar zum Doppelklicken:
+
+| Doppelklick | startet / beendet | Port |
+|---|---|---|
+| `Server starten.cmd` / `Server stoppen.cmd` | Ranking-Tool **und** Voicebox | 3000, 17493, 5173 |
+| `Ranking starten.cmd` / `Ranking stoppen.cmd` | nur das Ranking-Tool | 3000 |
+| `Voicebox starten.cmd` / `Voicebox stoppen.cmd` | nur Voicebox | 17493, 5173 |
+| `ComfyUI starten.cmd` / `ComfyUI stoppen.cmd` | nur ComfyUI | 8188 |
+| `H3-Studio starten.cmd` / `H3-Studio stoppen.cmd` | ComfyUI **und** h3-studio | 8188, 3100 |
+
+Oder im Terminal:
 
 ```powershell
-.\server.ps1 start             # alles starten (Ranking-Tool + Voicebox), Browser öffnen
+.\server.ps1 start             # Ranking-Tool + Voicebox, Browser öffnen
 .\server.ps1 start ranking     # nur das Ranking-Tool
 .\server.ps1 stop voicebox     # nur Voicebox beenden
-.\server.ps1 status            # was läuft gerade?
+.\server.ps1 start h3          # ComfyUI + h3-studio
+.\server.ps1 start alles       # wirklich alles
+.\server.ps1 status alles      # was läuft gerade?
 .\server.ps1 restart -NoBrowser
 ```
 
+**`all` umfasst bewusst nicht die H3-Kette.** ComfyUI belegt beim Laden der
+Modelle rund 20 GB Arbeitsspeicher und fast das gesamte VRAM — das soll nicht
+nebenbei starten, wenn jemand nur Clips schneiden will. Dafür gibt es `h3`
+beziehungsweise `alles`.
+
+`H3-Studio starten.cmd` startet immer auch ComfyUI, weil h3-studio ohne
+Engine nichts erzeugen könnte. Läuft ComfyUI nicht, wird h3-studio gar nicht
+erst gestartet und sagt das auch. Ob wirklich alles bereit ist, beantwortet
+`curl http://127.0.0.1:3100/api/health` mit `"ok": true`.
+
 Die Server laufen unsichtbar weiter, auch wenn das Fenster geschlossen wird;
-ihre Ausgaben stehen in `.run\<dienst>.log`. Voicebox wird unter
-`D:\Projects\voicebox` erwartet (Pfad oben in `server.ps1` anpassbar). Beim
+ihre Ausgaben stehen in `.run\<dienst>.log`. Die Pfade zu Voicebox, ComfyUI
+und h3-studio stehen oben in `server.ps1` und lassen sich dort anpassen. Beim
 Stoppen werden nur Prozesse beendet, die zum jeweiligen Dienst passen — ein
 fremdes Programm auf demselben Port bleibt unangetastet.
 
