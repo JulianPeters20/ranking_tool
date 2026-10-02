@@ -1,23 +1,23 @@
 {
-  "title": "Ranking the Whiniest Dogs 😭",
+  "title": "Ranking the Worst Golf Fails ⛳",
   "titleFont": "arial",
   "titleFontSize": 62,
   "titleWordColors": {
-    "2": "#fcdb03",
-    "3": "#fc0303"
+    "3": "#fcdb03",
+    "4": "#fc0303"
   },
   "intro": {
     "enabled": true,
     "duration": 2,
     "position": "afterFirst",
     "voice": {
-      "text": "Ranking the Whiniest Dogs! Wait for number one!",
+      "text": "Ranking the Worst Golf Fails! Here we go.",
       "profileId": "8d97b9ee-84be-4086-9b13-10be9a6f619d",
       "language": "en",
       "filePath": "intro/voice.wav",
       "volume": 1,
-      "duration": 3.275,
-      "createdAt": "2026-10-02T08:34:55.919Z"
+      "duration": 2.9,
+      "createdAt": "2026-09-17T17:05:01.390Z"
     }
   }
 }

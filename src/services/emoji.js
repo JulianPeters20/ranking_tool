@@ -9,7 +9,8 @@ const path = require('path');
 const { DATA_DIR } = require('./state');
 
 const CACHE_DIR = path.join(DATA_DIR, 'emoji-cache');
-const SOURCE_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/';
+// Fest auf ein Release-Tag gepinnt: auf "main" liegt png/128 nicht mehr (404).
+const SOURCE_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@v2.051/png/128/';
 const DOWNLOAD_TIMEOUT_MS = 10000;
 
 const graphemeSegmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
@@ -55,7 +56,10 @@ function notoFileName(cluster) {
 
 async function download(url, dest) {
   const res = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
-  if (!res.ok) return;
+  if (!res.ok) {
+    console.warn(`Emoji-Download fehlgeschlagen (HTTP ${res.status}): ${url}`);
+    return;
+  }
   const tmp = `${dest}.part`;
   fs.writeFileSync(tmp, Buffer.from(await res.arrayBuffer()));
   fs.renameSync(tmp, dest);

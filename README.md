@@ -380,9 +380,11 @@ Verantwortung — analog zu vergleichbaren Tools (z.B. Viblo).
   Bilder (Google Noto Emoji, Apache-2.0) per `overlay` aufgelegt; Text läuft
   mit `y_align=baseline`, sodass Text und Emoji auf derselben Grundlinie
   stehen. Die PNGs (128 px) werden beim ersten Gebrauch einmalig von jsDelivr
-  geladen und in `data/emoji-cache/` gespeichert — danach geht es offline.
-  Ist ein Emoji nicht verfügbar (offline beim ersten Mal, unbekanntes Emoji),
-  wird es weggelassen.
+  geladen (Noto-Release-Tag `v2.051`, fest gepinnt — auf `main` gibt es
+  `png/128` nicht mehr) und in `data/emoji-cache/` gespeichert — danach geht
+  es offline. Ist ein Emoji nicht verfügbar (offline beim ersten Mal,
+  unbekanntes Emoji), wird es weggelassen und eine Warnung ins Server-Log
+  geschrieben.
 - Schriftart/-größe des Gesamttitels liegen in `data/settings.json`
   (`titleFont`, `titleFontSize`), Wortfarben in `titleWordColors`
   (Wortindex → Hexfarbe). 6 Schriftarten stehen lokal in `assets/fonts/`
