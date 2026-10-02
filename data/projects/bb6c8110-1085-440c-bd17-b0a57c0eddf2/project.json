@@ -1,0 +1,121 @@
+[
+  {
+    "id": "2d3a39ca-3fd3-41bf-832b-925abe203476",
+    "url": "https://www.tiktok.com/@espn/video/7502955680500895006?is_from_webapp=1&sender_device=pc",
+    "title": "Incoming 😳",
+    "creator": {
+      "handle": "@espn",
+      "url": "https://www.tiktok.com/@espn"
+    },
+    "rankOverride": null,
+    "trimStart": 1,
+    "trimEnd": null,
+    "filePath": "clips/2d3a39ca-3fd3-41bf-832b-925abe203476.mp4",
+    "thumbnailPath": "clips/2d3a39ca-3fd3-41bf-832b-925abe203476.jpg",
+    "duration": 6.966667,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "82049aac-534c-4beb-b620-9934791b5de5",
+    "url": "https://www.tiktok.com/@noaahh.j/video/7521755041821216056?is_from_webapp=1&sender_device=pc",
+    "title": "Club goes flying 🚀",
+    "creator": {
+      "handle": "@noaahh.j",
+      "url": "https://www.tiktok.com/@noaahh.j"
+    },
+    "rankOverride": null,
+    "trimStart": 3.5,
+    "trimEnd": null,
+    "filePath": "clips/82049aac-534c-4beb-b620-9934791b5de5.mp4",
+    "thumbnailPath": "clips/82049aac-534c-4beb-b620-9934791b5de5.jpg",
+    "duration": 8.542993,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "1cff885e-4f88-48d6-9354-07fe9f02727d",
+    "url": "https://www.tiktok.com/@dumbwaystodie/video/7248173095138250002?is_from_webapp=1&sender_device=pc",
+    "title": "Slipped mid-swing 💀",
+    "creator": {
+      "handle": "@dumbwaystodie",
+      "url": "https://www.tiktok.com/@dumbwaystodie"
+    },
+    "rankOverride": null,
+    "trimStart": 0,
+    "trimEnd": null,
+    "filePath": "clips/1cff885e-4f88-48d6-9354-07fe9f02727d.mp4",
+    "thumbnailPath": "clips/1cff885e-4f88-48d6-9354-07fe9f02727d.jpg",
+    "duration": 7.381995,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "7b1b8239-d7ca-4d1f-b838-a49c48257ac3",
+    "url": "https://www.tiktok.com/@chazot097/video/7407112958767058209?is_from_webapp=1&sender_device=pc",
+    "title": "RIP phone 📱",
+    "creator": {
+      "handle": "@chazot097",
+      "url": "https://www.tiktok.com/@chazot097"
+    },
+    "rankOverride": null,
+    "trimStart": 2.5,
+    "trimEnd": 9,
+    "filePath": "clips/7b1b8239-d7ca-4d1f-b838-a49c48257ac3.mp4",
+    "thumbnailPath": "clips/7b1b8239-d7ca-4d1f-b838-a49c48257ac3.jpg",
+    "duration": 9.776443,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "59018cdd-7432-4f8f-8f96-903d9820cce7",
+    "url": "https://www.tiktok.com/@espn/video/7639804368732179742?is_from_webapp=1&sender_device=pc",
+    "title": "Runaway golf bag 🏃",
+    "creator": {
+      "handle": "@espn",
+      "url": "https://www.tiktok.com/@espn"
+    },
+    "rankOverride": null,
+    "trimStart": 0.5,
+    "trimEnd": null,
+    "filePath": "clips/59018cdd-7432-4f8f-8f96-903d9820cce7.mp4",
+    "thumbnailPath": "clips/59018cdd-7432-4f8f-8f96-903d9820cce7.jpg",
+    "duration": 14.814331,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "8c9be15d-007b-48f5-9467-0465f1933f11",
+    "url": "https://www.tiktok.com/@espn/video/7675856942899776798?is_from_webapp=1&sender_device=pc",
+    "title": "Cart crash 😭",
+    "creator": {
+      "handle": "@espn",
+      "url": "https://www.tiktok.com/@espn"
+    },
+    "rankOverride": null,
+    "trimStart": 0.5,
+    "trimEnd": null,
+    "filePath": "clips/8c9be15d-007b-48f5-9467-0465f1933f11.mp4",
+    "thumbnailPath": "clips/8c9be15d-007b-48f5-9467-0465f1933f11.jpg",
+    "duration": 10.797007,
+    "status": "ready",
+    "error": null
+  },
+  {
+    "id": "e1db8765-dc9c-4a72-904a-df2afac6f87e",
+    "url": "https://www.tiktok.com/@kristina.santa/video/7322231850871606570?is_from_webapp=1&sender_device=pc",
+    "title": "Topgolf escape 🚨",
+    "creator": {
+      "handle": "@kristina.santa",
+      "url": "https://www.tiktok.com/@kristina.santa"
+    },
+    "rankOverride": null,
+    "trimStart": 0,
+    "trimEnd": null,
+    "filePath": "clips/e1db8765-dc9c-4a72-904a-df2afac6f87e.mp4",
+    "thumbnailPath": "clips/e1db8765-dc9c-4a72-904a-df2afac6f87e.jpg",
+    "duration": 7.219955,
+    "status": "ready",
+    "error": null
+  }
+]

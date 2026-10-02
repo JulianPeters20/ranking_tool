@@ -1,0 +1,52 @@
+[
+  {
+    "id": "07f30856-6e15-4f9a-9ffd-ba7cead7707c",
+    "filePath": "output/final_1789664709048.mp4",
+    "thumbnailPath": "output/thumbnails/07f30856-6e15-4f9a-9ffd-ba7cead7707c.jpg",
+    "width": 1080,
+    "height": 1920,
+    "sources": [
+      {
+        "handle": "@espn",
+        "profileUrl": "https://www.tiktok.com/@espn",
+        "url": "https://www.tiktok.com/@espn/video/7502955680500895006?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@noaahh.j",
+        "profileUrl": "https://www.tiktok.com/@noaahh.j",
+        "url": "https://www.tiktok.com/@noaahh.j/video/7521755041821216056?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@dumbwaystodie",
+        "profileUrl": "https://www.tiktok.com/@dumbwaystodie",
+        "url": "https://www.tiktok.com/@dumbwaystodie/video/7248173095138250002?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@chazot097",
+        "profileUrl": "https://www.tiktok.com/@chazot097",
+        "url": "https://www.tiktok.com/@chazot097/video/7407112958767058209?is_from_webapp=1&sender_device=pc"
+      },
+      {
+        "handle": "@kristina.santa",
+        "profileUrl": "https://www.tiktok.com/@kristina.santa",
+        "url": "https://www.tiktok.com/@kristina.santa/video/7322231850871606570?is_from_webapp=1&sender_device=pc"
+      }
+    ],
+    "createdAt": "2026-09-17T17:05:09.419Z",
+    "youtubeTitle": "Ranking the Worst Golf Fails! ⛳",
+    "youtubeDescription": "Ranking the Worst Golf Fails.\n\nCredits:\n@espn – https://www.tiktok.com/@espn\n@noaahh.j – https://www.tiktok.com/@noaahh.j\n@dumbwaystodie – https://www.tiktok.com/@dumbwaystodie\n@chazot097 – https://www.tiktok.com/@chazot097\n@kristina.santa – https://www.tiktok.com/@kristina.santa",
+    "tags": [
+      "viral",
+      "feed",
+      "shorts",
+      "golf",
+      "fails"
+    ],
+    "madeForKids": false,
+    "containsSyntheticMedia": true,
+    "scheduledAt": null,
+    "uploadStatus": "draft",
+    "youtubeVideoId": null,
+    "error": null
+  }
+]
